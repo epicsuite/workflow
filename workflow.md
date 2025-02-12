@@ -40,7 +40,8 @@ datasets:
 ## Step 2: FastQ-to-HiC processing
 
 1. Using the artifacts from `step 1`, run `SLURPy` to produce one `.hic` file per `.fastq` file. The new `.hic` files are created in `results/hic` directory.
-2. The files shall be named `build/d(number).t(number).hic` where `d(number)` is the dataset number and `t(number)` is the timestep number.
+2. The files shall be named `build/d(number).t(number).hic` where `d(number)` is the dataset number and `t(number)` is the timestep number. The timestep
+number is taken from the order in which the files are defined in the `workflow.yaml` file.
 
 
 ## Step 3: HiC to Structure step
