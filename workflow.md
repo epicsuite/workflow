@@ -14,7 +14,9 @@ This workflow transforms `fastq` files into 4D datasets that can be viewed in a 
 
 ```
 version: x.x
+description: some description
 experiment: name
+cell line: name
 replicate: 1
 timeunits: hr
 timevalues: [24, 48, ..., N]

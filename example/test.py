@@ -8,6 +8,8 @@ with open("workflow.yaml") as stream:
         print(exc)
 
 ID = 0
+print("description: " + workflow['description'])
+print("cell line:   " + workflow['cell line'])
 for d in workflow['datasets']:
     print('dataset' + str(ID))
     tstep = 0
