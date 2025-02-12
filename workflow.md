@@ -3,6 +3,7 @@
 This workflow transforms `fastq` files into 4D datasets that can be viewed in a comparative visualization browser. The datasets can be viewed side-by-side, and the user can scroll through timesteps.
 
 **Target Viewer:** [The current epic viewer comparative visualization app](https://github.com/epicsuite/epicview/tree/main/compare)
+
 **Directory and file hierarchy** [The current directory hierarchy](hierarchy.md)
 
 ## Step 1: Data Upload and Workflow Definition
