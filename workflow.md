@@ -1,5 +1,7 @@
 # EPIC workflow
 
+This workflow transforms `fastq` files into 4D datasets that can be viewed in a comparative visualization browser. The datasets can be viewed side-by-side, and the user can scroll through timesteps.
+
 ## Step 1: Data Upload and Workflow Definition
 
 1. User uploads `fastq` files and defines high level attributes of the workflow, which are captured in the `workflow.yaml` file. 
