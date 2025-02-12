@@ -31,15 +31,15 @@ datasets:
         - /path/to/filename2.N.fastq
 ```
 
-## Step 2: FastQ-to-HiC processing
-
-1. Using the artifacts from `step 1`, run `SLURPy` to produce one `.hic` file per `.fastq` file. The new `.hic` files are created in `results/hic` directory.
-
 ### Requirements
 
 1. All `.fastq` files contain date for the same list of chromosomes.
 2. All `.fastq` files contain data for the same resolution. 
 3. All datasets have the same number of timesteps, and those timesteps have the same `timevalues`.
+
+## Step 2: FastQ-to-HiC processing
+
+1. Using the artifacts from `step 1`, run `SLURPy` to produce one `.hic` file per `.fastq` file. The new `.hic` files are created in `results/hic` directory.
 
 ## Step 3: HiC to Structure step
 
