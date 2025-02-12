@@ -1,0 +1,19 @@
+version: x.x
+experiment: name
+replicate: 1
+timeunits: hr
+timevalues: [24, 48]
+resolution: 100000
+datasets:
+  -
+    treatment: name
+    fastq:
+      - /path/to/filename0.0.fastq
+      - /path/to/filename0.1.fastq
+      - /path/to/filename0.N.fastq
+  -
+    treatment: name
+    fastq:
+      - /path/to/filename1.0.fastq
+      - /path/to/filename1.1.fastq
+      - /path/to/filename1.N.fastq

@@ -9,26 +9,25 @@
 ```
 version: x.x
 experiment: name
+replicate: 1
+timeunits: hr
+timevalues: [24, 48]
+resolution: 100000
 datasets:
-  replicate: 1
-  timeunits: hr
-  timevalues: [24, 48]
-  resolution: 100000
-  0:
+  -
     treatment: name
-      files:
-        fastq:
-          - /path/to/filename1.1.fastq
-          - /path/to/filename1.2.fastq
-          - ...
-          - /path/to/filename1.N.fastq
-  1:
+    fastq:
+      - /path/to/filename0.0.fastq
+      - /path/to/filename0.1.fastq
+      - ...
+      - /path/to/filename0.N.fastq
+  -
     treatment: name
-      fastq:
-        - /path/to/filename2.1.fastq
-        - /path/to/filename2.2.fastq
-        - ...
-        - /path/to/filename2.N.fastq
+    fastq:
+      - /path/to/filename1.0.fastq
+      - /path/to/filename1.1.fastq
+      - ...
+      - /path/to/filename1.N.fastq
 ```
 
 ### Requirements
