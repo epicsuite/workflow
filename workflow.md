@@ -38,7 +38,15 @@ datasets:
 ## Step 3: HiC to Structure step
 
 1. Define parameters for the `hic-to-structure` step, and capture in the `hic-to-structure.yaml` file, which is stored in the `build/` directory. 
-2. For each `fastq` file in the `workflow.yaml` file, run `hic-to-structure` to produce a structure file in `build/chrN/(dataset)/(timestep)`.
+2. For each `fastq` file in the `workflow.yaml` file, run `hic-to-structure` to produce a structure file for each chromosome in `build/chrN/(dataset)/(timestep)`.
+The list of chromosomes shall be automatically extracted from the `.fastq` files.
+
+### Requirements
+
+1. All `.fastq` files contain date for the same list of chromosomes.
+2. All `.fastq` files contain data for the same resolution. 
+3. All datasets have the same number of timesteps, and those timesteps have the same `timevalues`.
+
 
 **Note:** need to define what must be captured in the `hic-to-structure` file. 
 
