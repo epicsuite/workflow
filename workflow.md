@@ -74,8 +74,6 @@ trackN.csv
 
 2. Metadata for this step is captured in a `vis-data-fusion.yaml` which is saved in `build/chrN/` directory.
 
-`vis-data-fusion.yaml`
-
 ```
 version: x.x
 chromosome: N
@@ -91,6 +89,10 @@ tracks:
 ```
 
 3. Run the next step to create vis files.
+
+### Requirements
+
+1. Each dataset has a complete set of track files, as expected by the visualization application. 
 
 ## Step 5: Vis Data Fusion step
 
