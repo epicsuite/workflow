@@ -41,14 +41,18 @@ datasets:
 
 1. Using the artifacts from `step 1`, run `SLURPy` to produce one `.hic` file per `.fastq` file. The new `.hic` files are created in `results/hic` directory.
 
+
 ## Step 3: HiC to Structure step
 
 1. Define parameters for the `hic-to-structure` step, and capture in the `hic-to-structure.yaml` file, which is stored in the `build/` directory. 
 2. For each `fastq` file in the `workflow.yaml` file, run `hic-to-structure` to produce a structure file for each chromosome in `build/chrN/(dataset)/(timestep)`.
 The list of chromosomes shall be automatically extracted from the `.fastq` files.
 
+### Note
 
-**Note:** need to define what must be captured in the `hic-to-structure` file. 
+1. At this step, the workflow branches, because each `.fastq/.hic` data input results in `n` structure files being created (one per chromosome present in the files).
+Once completed, any of these structure files can move on to the next step.
+2. We need to define what must be captured in the `hic-to-structure` file. 
 
 ```
 version: x.x
