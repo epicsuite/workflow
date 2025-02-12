@@ -40,7 +40,7 @@ datasets:
 1. Define parameters for the `hic-to-structure` step, and capture in the `hic-to-structure.yaml` file, which is stored in the `build/` directory. 
 2. For each `fastq` file in the `workflow.yaml` file, run `hic-to-structure` to produce a structure file in `build/chrN/(dataset)/(timestep)`.
 
-**Note to Shounak:** I'm not sure what will need to be captured in the `hic-to-structure.yaml` file:
+**Note:** need to define what must be captured in the `hic-to-structure` file. 
 
 ```
 version: x.x
