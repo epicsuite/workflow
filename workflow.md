@@ -48,18 +48,15 @@ datasets:
 2. For each `fastq` file in the `workflow.yaml` file, run `hic-to-structure` to produce a structure file for each chromosome in `build/chrN/(dataset)/(timestep)`.
 The list of chromosomes shall be automatically extracted from the `.fastq` files.
 
+```
+version: x.x
+```
+
 ### Note
 
 1. At this step, the workflow branches, because each `.fastq/.hic` data input results in `n` structure files being created (one per chromosome present in the files).
 Once completed, any of these structure files can move on to the next step.
 2. We need to define what must be captured in the `hic-to-structure` file. 
-
-```
-version: x.x
-```
-
-source directory: `build/`
-destination directory: `build/chrN`
 
 ## Step 4: Data upload step
 
