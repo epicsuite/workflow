@@ -34,6 +34,9 @@ datasets:
       - /path/to/filename1.N.fastq
 ```
 
+4. An `experiment.csv` file is created in the `build/` directory. The contents of this file contain the metadata 
+needed to describe the experimental design data for this analysis. 
+
 ### Requirements
 
 1. There is one `.fastq` file per dataset per timestep.
