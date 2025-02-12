@@ -87,5 +87,3 @@ tracks:
 
 1. For a specific Chromosome, use files in the `build/chrN` directory and create data in the `results/chrN` directory. This is done by iterating over the datasets and timesteps in the source directory and creating files in the `results` directory.
 
-
-source directory: `build/chrN/(dataset)/(timestep)`
