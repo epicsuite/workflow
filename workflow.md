@@ -2,6 +2,8 @@
 
 This workflow transforms `fastq` files into 4D datasets that can be viewed in a comparative visualization browser. The datasets can be viewed side-by-side, and the user can scroll through timesteps.
 
+**Target Viewer:** [The current epic viewer comparative visualization app](https://github.com/epicsuite/epicview/tree/main/compare)
+
 ## Step 1: Data Upload and Workflow Definition
 
 1. User uploads `fastq` files and defines high level attributes of the workflow, which are captured in the `workflow.yaml` file. 
@@ -66,15 +68,7 @@ Once completed, any of these structure files can move on to the next step.
 
 1. Track data for a specific chromosome is added to the correct chromosome build directory. 
 There will be `2 x numtimesteps x numtracks + 1 (feature file)` files uploaded per chromosome.
-Files to be uploaded:
-
-```
-features.csv
-track1.csv
-track2.csv
-...
-trackN.csv
-```
+The `target viewer` for this workflow shall define the tracks required for this step.
 
 2. Metadata for this step is captured in a `vis-data-fusion.yaml` which is saved in `build/chrN/` directory.
 
