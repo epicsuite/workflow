@@ -36,6 +36,7 @@ datasets:
 
 ### Requirements
 
+1. There is one `.fastq` file per dataset per timestep.
 1. All `.fastq` files contain date for the same list of chromosomes.
 2. All `.fastq` files contain data for the same resolution. 
 3. All datasets have the same number of timesteps, and those timesteps have the same `timevalues`.
