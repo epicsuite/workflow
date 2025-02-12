@@ -25,10 +25,11 @@
        filename1.2.fastq
        ...
        filename2.N.fastq
-     0.0.hic
-     0.1.hic
-     ...
-     1.n.hic
+     hic/
+       0.0.hic
+       0.1.hic
+       ...
+       1.n.hic
    results/
      chr1/
      chr2/
