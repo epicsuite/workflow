@@ -11,7 +11,7 @@ version: x.x
 experiment: name
 replicate: 1
 timeunits: hr
-timevalues: [24, 48]
+timevalues: [24, 48, ..., N]
 resolution: 100000
 datasets:
   -
