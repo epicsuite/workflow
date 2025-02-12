@@ -71,21 +71,9 @@ There will be `2 x numtimesteps x numtracks + 1 (feature file)` files uploaded p
 The [target viewer](https://github.com/epicsuite/epicview/tree/main/compare)
 for this workflow shall define the tracks required for this step.
 
-2. Metadata for this step is captured in a `vis-data-fusion.yaml` which is saved in `build/chrN/` directory.
-
-```
-version: x.x
-chromosome: N
-tracks:
-  peak:
-    track1.csv
-    track2.csv
-    ...
-  structure:
-    track3.csv
-    ...
-    trackN.csv
-```
+2. Metadata for this step is captured in a `vis-data-fusion.yaml` which is saved in `build/chrN/` directory. This
+defines required input tracks, and what the tracks can be used for.
+The [target viewer](https://github.com/epicsuite/epicview/tree/main/compare) shall define the contents of this file.
 
 3. Run the next step to create vis files.
 
