@@ -1,6 +1,5 @@
 # EPIC data hierarchy 
 
-## directory structure and example files
 ```
 (unique identifier)/
    experiment.csv               table encoding the experimental design information for this workflow
