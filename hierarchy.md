@@ -2,9 +2,8 @@
 
 ```
 (unique identifier)/
-   experiment.csv               table encoding the experimental design information for this workflow
+   experimental_design.csv      table encoding the experimental design information for this workflow
    workflow.yaml
-   hic-to-structure.yaml
    build/
      chr1/
      chr2/
