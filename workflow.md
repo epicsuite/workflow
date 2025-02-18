@@ -12,7 +12,8 @@ specific visualization browser.
 1. User uploads an `experimental_design.csv` file, which describes the datasets
    to be compared. This workflow requires `[1, ..., n]` lines with pairs of
    logically associated files. The assumption is that each line describes an
-   identical timestep in a pair of datasets. 
+   identical timestep in a pair of datasets. These timesteps are assumed to be 
+   in the order provided in `step 3`.
 
 ```
 filepath_1,filepath_2,description
@@ -37,14 +38,14 @@ timeunits: hr                       (required; provided by scientist)
 timevalues: [24, 48, ..., N]        (required; provided by scientist)
 resolution: 100000                  (required; provided by scientist)
 datasets:
-  -
+  -                                 (collection of first file of every line, in order)
     treatment: name                 (required; provided by scientist)
     fastq:
       - /path/to/filename0.0.fastq  (extracted from experimental_design.csv)
       - /path/to/filename0.1.fastq  (extracted from experimental_design.csv)
       - ...
       - /path/to/filename0.N.fastq  (extracted from experimental_design.csv)
-  -
+  -                                 (collection of second file of every line, in order)
     treatment: name                 (required; provided by scientist)
     fastq:
       - /path/to/filename1.0.fastq  (extracted from experimental_design.csv)
