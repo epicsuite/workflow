@@ -9,9 +9,19 @@ specific visualization browser.
 
 ## Step 1: Data Upload and Workflow Definition
 
-1. User uploads `fastq` files and defines high level attributes of the workflow, which are captured in the `workflow.yaml` file. 
-2. The data files are moved to the `build/fastq/` directory. 
-3. A `workflow.yaml` file is created in the `results/` directory:
+1. User uploads an `experimental_design.csv` file, which describes the datasets to be compared:
+
+```
+filepath_1, filepath_2,description
+/path/to/filename0.0.fastq,/path/to/filename1.0.fastq,description of pair to be compared
+/path/to/filename0.1.fastq,/path/to/filename1.1.fastq,description of pair to be compared
+...
+/path/to/filename0.N.fastq,/path/to/filename1.N.fastq,description of pair to be compared
+
+```
+2. User uploads `fastq` files required by the `experimental_design.csv` file. The data files are moved to the `build/fastq/` directory. 
+3. User defines high level attributes of the workflow, which are captured in the `workflow.yaml` file. 
+4. Information from `1,2,3` are used to create the `workflow.yaml` file:
 
 ```
 version: x.x
@@ -39,8 +49,6 @@ datasets:
       - /path/to/filename1.N.fastq
 ```
 
-4. An `experiment.csv` file is created in the `build/` directory. The [contents of this file](experiment.md) contain the metadata 
-needed to describe the experimental design data for this analysis. 
 
 ### Requirements
 
