@@ -19,9 +19,10 @@ filepath_1,filepath_2,description
 /path/to/filename0.N.fastq,/path/to/filename1.N.fastq,description of pair to be compared
 
 ```
-2. User uploads `fastq` files required by the `experimental_design.csv` file. The data files are moved to the `build/fastq/` directory. 
-3. User defines high level attributes of the workflow, which are captured in the `workflow.yaml` file. 
-4. Information from `1,2,3` are used to create the `workflow.yaml` file:
+2. User uploads `fastq` files required by the `experimental_design.csv` file.
+   The data files are moved to the `build/fastq/` directory. 
+3. User defines high level attributes of the workflow. Using this and the
+   information from `1,2,3` the `workflow.yaml` file is created:
 
 ```
 version: x.x
