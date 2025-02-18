@@ -12,7 +12,7 @@ specific visualization browser.
 1. User uploads an `experimental_design.csv` file, which describes the datasets to be compared:
 
 ```
-filepath_1, filepath_2,description
+filepath_1,filepath_2,description
 /path/to/filename0.0.fastq,/path/to/filename1.0.fastq,description of pair to be compared
 /path/to/filename0.1.fastq,/path/to/filename1.1.fastq,description of pair to be compared
 ...
