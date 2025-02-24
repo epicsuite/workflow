@@ -79,8 +79,8 @@ version:     x.x                    (automatically added by the workflow)
    `d(number)` is the dataset number and `t(number)` is the timestep number.
    The dataset and timestep number are taken from the order defined in the
    `workflow.yaml` file. The first list under `datasets` in the yaml file
-   provides the dataset ID, and the `fastq:` list under the dataset ID list
-   defines the timestep ID.
+   provides the dataset ID, and the list under the dataset defines the 
+   timestep ID.
 
 
 ## Step 3: HiC to Structure step
