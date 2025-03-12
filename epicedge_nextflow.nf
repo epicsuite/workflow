@@ -36,11 +36,12 @@ process processFile {
     output:
     // Save the output in a file named with the file name and variation
     path ("${file_chrom[0]}/chr${file_chrom[2]}/structure.csv")
+    path ("${file_chrom[0]}/chr${file_chrom[2]}/sim.log")
     script:
     """
     mkdir -p "${file_chrom[0]}"
     mkdir -p "${file_chrom[0]}/chr${file_chrom[2]}"
-    echo '${file_chrom[0]}'_chr'${file_chrom[2]}' > "${file_chrom[0]}/chr${file_chrom[2]}/structure.csv"  
+    #echo '${file_chrom[0]}'_chr'${file_chrom[2]}' > "${file_chrom[0]}/chr${file_chrom[2]}/structure.csv"  
     python -m hic2structure --verbose --resolution 100000 --chromosome chr"${file_chrom[2]}" --bond-coeff 55 --count-threshold 10 \\
                         -o "${file_chrom[0]}/chr${file_chrom[2]}" \\
                         "${file_chrom[1]}"
