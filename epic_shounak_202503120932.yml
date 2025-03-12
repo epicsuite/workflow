@@ -1,0 +1,6 @@
+name: epic
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+prefix: /home/baners4/.conda/envs/epic
