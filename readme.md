@@ -13,7 +13,7 @@ processing.
 The components and data specifications are targeted to run on LANL's EDGE infrastructure. 
 The specifications, repositories and instructions to manage and run this workflow are:
 
-- [input deck specification](input.md) This is the input deck required by the end-to-end
+- [Input deck specification](input.md) This is the input deck required by the end-to-end
   workflow. It defines all input files and metadata needed to create the 4D data for
   the rest of the workflow.
 - [EDGE end-to-end workflow](https://github.com/epicsuite/workflow/tree/main/nextflow) 
