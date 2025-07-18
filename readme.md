@@ -30,9 +30,9 @@ running the workflow. Data upload is outside the scope of this workflow.
 
 ## Step 2: Workflow Input Deck Definition
 
-The user defines an `epicworkflow.yaml` file, as [specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
-). The method of creating this file is outside 
-the scope of this workflow definition.
+The user defines an `epicworkflow.yaml` file, as 
+[specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md).
+The method of creating this file is outside the scope of this workflow definition.
 
 ## Step 3: Running the workflow 
 
