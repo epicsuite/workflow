@@ -6,6 +6,9 @@ specific visualization browser.
 - [input deck specification](input.md) This is the input deck required by the end-to-end
   workflow. It defines all input files and metadata needed to create the 4D data for
   the rest of the workflow.
+- [EDGE end-to-end workflow](https://github.com/epicsuite/workflow/tree/main/nextflow) 
+  This is the NextFlow-based workflow that takes the input
+  deck and transforms it into 4D datasets that can be viewed with an interactive viewer.
 - [4D data specification](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
   This is the specification for the 4D datasets required by downstream analysis and 
   visualization tools.
