@@ -45,22 +45,21 @@ The workflow is responsible for creating a valid 4D dataset as
 [specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md).
 The main steps run by the workflow are:
 
-1. `epigen` step. This takes the `epicworkflow.yaml` file as input and creates the
-  data hierarchy needed by later tools, including directories and some metadata
-  files required by later steps. This step is managed by the `epicsuite` python 
-  module, and must be run and completed successfully before any subsequent step.
+1. `epigen` step. This takes the `epicworkflow.yaml` file as input and creates
+   the data hierarchy needed by later tools, including directories and some
+   metadata files required by later steps. This step is managed by the
+   `epicsuite` python module, and must be run and completed successfully before
+   any subsequent step.
 
-2. `structuregen` step. This takes the `epicworkflow.yaml` file as input, and does
-  all processing needed to create all structure files required by the 4D data
-  specification. 
-  The results of this step are placed at the correct place in
-  the data hierarchy created in the previous step.
+2. `structuregen` step. This takes the `epicworkflow.yaml` file as input, and
+   does all processing needed to create all structure files required by the 4D
+   data specification. The results of this step are placed at the correct place
+   in the data hierarchy created in the previous step.
 
 3. `trackgen` step. This takes the `epicworkflow.yaml` file as input, and does
-  all processing needed to create all track files required by the 4D data
-  specification.    
-  The results of this step are placed at the correct place in
-  the data hierarchy created in the previous step.
+   all processing needed to create all track files required by the 4D data
+   specification. The results of this step are placed at the correct place in
+   the data hierarchy created in the previous step.
 
 ## Step 4: Visual exploration of 4D datasets 
 
