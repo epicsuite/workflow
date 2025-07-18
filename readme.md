@@ -1,8 +1,9 @@
 # EPIC Workflow
-
+<!--
 |![screen capture](doc/img/workflow.png)|
 | ---- |
 |*Diagram of the EPIC workflow*|
+-->
 
 This workflow transforms `fastq` files into time-based 4D datasets that can be viewed in a 
 specific visualization browser.
