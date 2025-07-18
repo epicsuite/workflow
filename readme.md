@@ -5,9 +5,10 @@
 |*Diagram of the EPIC workflow*|
 -->
 
-This workflow transforms `fastq` files into time-based 4D datasets. The results can be 
-viewed in a visualization tool we are developing, but are also available for other types
-of analysis and processing.
+This workflow transforms `fastq` files and other related datasets into
+time-based 4D datasets. The results can be viewed in a visualization tool we
+are developing, but are also available for other types of analysis and
+processing.
 
 The components and data specifications are targeted to run on LANL's EDGE infrastructure. 
 The specifications, repositories and instructions to manage and run this workflow are:
