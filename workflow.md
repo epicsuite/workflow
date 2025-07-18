@@ -3,9 +3,9 @@
 This workflow transforms `fastq` files into time-based 4D datasets that can be viewed in a 
 specific visualization browser.
 
-**Target Viewer:** [The current epic viewer comparative visualization app](https://github.com/epicsuite/episcope)
-
-**Directory and file hierarchy** [The current directory hierarchy](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
+- [input deck specification](input.md)
+- [4D data specification](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
+- [4D dataset viewer](https://github.com/epicsuite/episcope)
 
 ## Step 1: Data Upload and Workflow Definition
 
