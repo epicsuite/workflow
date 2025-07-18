@@ -5,6 +5,9 @@ end-to-end data transformation workflow. It defines input files and other
 attributes used by later steps to create a 4D data ensemble that can be
 read by downstream analysis and visualization tools. 
 
+The workflow definition file defines the same input data (timesteps,
+structure, tracks, etc.) for each experiment. 
+
 ```        
 ensemble:
   reference:
@@ -12,7 +15,7 @@ ensemble:
     annotation: somename.gff 
   chromosomes:
     excluded: [list of chromosomes]
-  eperiments:
+  experiments:
     - experiment_A
       timesteps:
         - timestep00
@@ -37,6 +40,9 @@ ensemble:
             name01: file
             name02: file
     - experiment_B
+        (same as shown above)
     - experiment_C
-    - experiment_C
+        (same as shown above)
+    - experiment_D
+        (same as shown above)
 ```
