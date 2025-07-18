@@ -77,24 +77,9 @@ have been created.
 
 - **Steps 2 and 3** can be run concurrently. They are not dependent upon each other.
 
-1. User uploads an `experimental_design.csv` file, which describes the datasets
-   to be compared. This workflow requires `[1, ..., n]` lines with pairs of
-   logically associated files. The assumption is that each line describes an
-   identical timestep in a pair of datasets. These timesteps are assumed to be 
-   in the order provided in `step 3`.
-
 # Overall Requirements
 
-1. There is one `.fastq` file per dataset per timestep.
-1. All `.fastq` files contain date for the same list of chromosomes.
+1. All `.fastq` files contain data for the same list of chromosomes.
 2. All `.fastq` files contain data for the same resolution. 
 3. All datasets have the same number of timesteps, and those timesteps have the
    same `timevalues`.
-
-## Step 5: Vis Data Fusion step
-
-1. For a specific Chromosome, use files in the `build/chrN` directory and
-   create data in the `results/chrN` directory. This is done by iterating over
-   the datasets and timesteps in the source directory and creating files in the
-   `results` directory.
-
