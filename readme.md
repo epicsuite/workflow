@@ -60,7 +60,8 @@ The main steps run by the workflow are:
 ## Step 4: Visual exploration of 4D datasets 
 
 Once the workflow steps have run and completed successfully, the 
-[visual exploration tool]() can be run on the resulting 4D ensemble dataset.
+[visual exploration tool](https://github.com/epicsuite/episcope) 
+can be run on the resulting 4D ensemble dataset.
 The tool takes the top level of the resulting data hierarchy as an argument,
 and allows the user to explore all experiments, chromosomes and tracks that
 have been created.
