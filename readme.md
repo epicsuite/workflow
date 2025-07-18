@@ -53,10 +53,14 @@ The main steps run by the workflow are:
 2. `structuregen` step. This takes the `epicworkflow.yaml` file as input, and does
   all processing needed to create all structure files required by the 4D data
   specification. 
+  The results of this step are placed at the correct place in
+  the data hierarchy created in the previous step.
 
 3. `trackgen` step. This takes the `epicworkflow.yaml` file as input, and does
   all processing needed to create all track files required by the 4D data
-  specification. 
+  specification.    
+  The results of this step are placed at the correct place in
+  the data hierarchy created in the previous step.
 
 ## Step 4: Visual exploration of 4D datasets 
 
