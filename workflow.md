@@ -48,6 +48,14 @@ The main steps run by the workflow are:
   all processing needed to create all track files required by the 4D data
   specification. 
 
+## Step 4: Visual exploration of 4D datasets 
+
+Once the workflow steps have run and completed successfully, the 
+[visual exploration tool]() can be run on the resulting 4D ensemble dataset.
+The tool takes the top level of the resulting data hierarchy as an argument,
+and allows the user to explore all experiments, chromosomes and tracks that
+have been created.
+
 ### Constraints and requirements
 - Each of these steps can be run multiple times on a single `epicworkflow.yaml`
   file, incrementally adding data to the 4D dataset for that workflow. The steps
