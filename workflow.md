@@ -3,9 +3,14 @@
 This workflow transforms `fastq` files into time-based 4D datasets that can be viewed in a 
 specific visualization browser.
 
-- [input deck specification](input.md)
+- [input deck specification](input.md) This is the input deck required by the end-to-end
+  workflow. It defines all input files and metadata needed to create the 4D data for
+  the rest of the workflow.
 - [4D data specification](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
-- [4D dataset viewer](https://github.com/epicsuite/episcope)
+  This is the specification for the 4D datasets required by downstream analysis and 
+  visualization tools.
+- [4D dataset viewer](https://github.com/epicsuite/episcope) This is the interactive
+  viewer that can browse 4D datasets.
 
 ## Step 1: Data Upload and Workflow Definition
 
