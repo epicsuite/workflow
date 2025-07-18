@@ -5,7 +5,7 @@ specific visualization browser.
 
 **Target Viewer:** [The current epic viewer comparative visualization app](https://github.com/epicsuite/episcope)
 
-**Directory and file hierarchy** [The current directory hierarchy](https://https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
+**Directory and file hierarchy** [The current directory hierarchy](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
 
 ## Step 1: Data Upload and Workflow Definition
 
