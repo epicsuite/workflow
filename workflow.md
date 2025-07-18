@@ -17,7 +17,18 @@ The components and data specifications are targeted to run on LANL's EDGE infras
 - [4D dataset viewer](https://github.com/epicsuite/episcope) This is the interactive
   viewer that can browse 4D datasets.
 
-## Step 1: Data Upload and Workflow Definition
+## Step 1: Data Upload
+
+For this version of the workflow tools, all files specified in an `ensemble.yaml` file
+are expected to be available on a shared file system accessible by the EDGE instance
+running the workflow. Data upload is outside the scope of this workflow.
+
+## Step 2: Workflow Input Deck Definition
+
+The user defines an `ensemble.yaml` file, as [specified here]
+(https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
+). The method of creating this file is outside 
+the scope of this workflow definition.
 
 1. User uploads an `experimental_design.csv` file, which describes the datasets
    to be compared. This workflow requires `[1, ..., n]` lines with pairs of
