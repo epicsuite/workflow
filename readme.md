@@ -66,7 +66,7 @@ The tool takes the top level of the resulting data hierarchy as an argument,
 and allows the user to explore all experiments, chromosomes and tracks that
 have been created.
 
-### Constraints and requirements
+# Constraints and requirements
 - Each of these steps can be run multiple times on a single `epicworkflow.yaml`
   file, incrementally adding data to the 4D dataset for that workflow. The steps
   should be managed such that they only perform operations and create files that
@@ -77,9 +77,7 @@ have been created.
 
 - **Steps 2 and 3** can be run concurrently. They are not dependent upon each other.
 
-# Overall Requirements
-
-1. All `.fastq` files contain data for the same list of chromosomes.
-2. All `.fastq` files contain data for the same resolution. 
-3. All datasets have the same number of timesteps, and those timesteps have the
+- All `.fastq` files contain data for the same list of chromosomes.
+- All `.fastq` files contain data for the same resolution. 
+- All datasets have the same number of timesteps, and those timesteps have the
    same `timevalues`.
