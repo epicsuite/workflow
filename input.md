@@ -1,4 +1,4 @@
-# Workflow definition file
+# Workflow input deck 
 
 This is a `.yaml` file containing all information needed to complete the
 end-to-end data transformation workflow. It defines input files and other
