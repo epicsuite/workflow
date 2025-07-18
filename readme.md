@@ -36,8 +36,11 @@ the scope of this workflow definition.
 
 ## Step 3: Running the workflow 
 
-The user requests the workflow be run on a specific `epicworkflow.yaml` file. The workflow
-is responsible for creating a valid 4D dataset as [specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md).
+The user requests the workflow be run on a specific `epicworkflow.yaml` file. 
+The repository for the master workflow is
+[here.](https://github.com/epicsuite/workflow/tree/main/nextflow) 
+The workflow is responsible for creating a valid 4D dataset as 
+[specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md).
 The main steps run by the workflow are:
 
 1. `epigen` step. This takes the `epicworkflow.yaml` file as input and creates the
