@@ -3,6 +3,8 @@
 This workflow transforms `fastq` files into time-based 4D datasets that can be viewed in a 
 specific visualization browser.
 
+The components and data specifications are targeted to run on LANL's EDGE infrastructure. 
+
 - [input deck specification](input.md) This is the input deck required by the end-to-end
   workflow. It defines all input files and metadata needed to create the 4D data for
   the rest of the workflow.
