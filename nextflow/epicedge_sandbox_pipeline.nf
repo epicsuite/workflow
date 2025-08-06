@@ -11,13 +11,14 @@ params.chromosomes = ['1']
 workflow {
 	main:
 	slurpy_hic(params.refix,params.mtDNA,params.partitions,params.genomelist,params.fastqdir)
-    hics = Channel.watchPath('./merged')
+    hics = Channel.watchPath('/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/aligned/*valid*.hic','create,modify')
                    //.splitCsv()
                    //.view {"Path $it"}
+                   .take(1)  
                    .map{it ->
-                        def bname = new File(it[0]).getBaseName()
-                        def fname = it[0]
-                        return [bname,fname]
+                      def bname = new File(it[0]).getBaseName()
+                      def fname = it[0]
+                      return [bname,fname]
                         }
                    //.view{"$it"}
     chrom = Channel.of(params.chromosomes)
@@ -32,8 +33,8 @@ workflow {
 }
 
 process slurpy_hic{
-tag "Running original SLURPY pipeline with nextflow on FASTQ data in ${params.fastqdir}"
-
+tag "Running original SLURPY pipeline with nextflow on FASTQ data in ${fastqdir}"
+publishDir "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/"
 input:
 //Need the following input deck
 //nextflow epicedge_sandbox.nf 
@@ -48,10 +49,11 @@ val (mtDNA) //Gets the --mtDNA argument values
 val (partitions) //Gets the --partitions argument values
 val (genomelist) // Gets the path to the genomelist file (.bed or .tsv)
 val (fastqdir) //Gets the path to the directory with input fastqs
-//output:
-//path "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/merged/"
+output:
+path "*"
 script:
 """
+bwa index $reference
 /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r $reference -P $partitions -G $genomelist -M $mtDNA -q $fastqdir -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar 
 """
 }
@@ -59,7 +61,7 @@ script:
 process hic2struct {
     // Tag each job with the file name and variation for clarity
     tag "Generating structure for ${file_chrom[0]}_${file_chrom[2]}"
-    publishDir 'results', mode:'move',overwrite:'false'
+    publishDir 'results', mode:'move',overwrite:'true'
     input:
     //path 'hicfiles/*.hic'
     val (file_chrom)
@@ -78,31 +80,3 @@ process hic2struct {
                         "${file_chrom[1]}"
     """
 }
-
-// This is the nextflow template that we probably want to use 
-//process foo {
-//    output: 
-//    val true
-//    script:
-//    """
-//    echo your_command_here
-//    """
-//}
-//
-//process bar {
-//    input: 
-//    val ready
-//    path fq
-//    script:
-//    """
-//    echo other_command_here --reads $fq
-//    """
-//}
-//
-//workflow {
-//    reads_ch = Channel.fromPath("$baseDir/data/reads/11010*.fq.gz", checkIfExists:true)
-//
-//    foo()
-//    bar(foo.out, reads_ch)
-//}
-//
