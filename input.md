@@ -26,22 +26,22 @@ ensemble:
             - r1.fastq
             - r2.fastq
           tracks:
-            name01: file
-            name02: file
+            name01: [list of two files]
+            name02: [list of two files]
         - timestep01
           structure:
             - r1.fastq
             - r2.fastq
           tracks:
-            name01: file
-            name02: file
+            name01: [list of two files]
+            name02: [list of two files]
         - timestep02
           structure:
             - r1.fastq
             - r2.fastq
           tracks:
-            name01: file
-            name02: file
+            name01: [list of two files]
+            name02: [list of two files]
     - experiment_B
         (same as shown above)
     - experiment_C
