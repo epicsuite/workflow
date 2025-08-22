@@ -24,13 +24,13 @@ ensemble:
         - name: timestep00
           structure: [filepath.fastq, filepath.fastq]
           tracks:
-            name01: [filepath.hic, filepath.hic]
-            name02: [filepath.hic, filepath.hic]
+            - name01: [filepath.hic, filepath.hic]
+            - name02: [filepath.hic, filepath.hic]
         - name: timestep01
           structure: [filepath.fastq, filepath.fastq]
           tracks:
-            name01: [filepath.hic, filepath.hic]
-            name02: [filepath.hic, filepath.hic]
+            - name01: [filepath.hic, filepath.hic]
+            - name02: [filepath.hic, filepath.hic]
     - name: experiment_B
         (same as shown above)
     - name: experiment_C
