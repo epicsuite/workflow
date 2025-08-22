@@ -13,6 +13,10 @@ Running the [workflow](workflow.md) on this file shall result in a fully populat
 
 ```        
 ensemble:
+  meta:
+    title: a title
+    desc: a longer description
+  license: somename.txt
   reference:
     sequence: somename.fna              (this is the source of the project's list of chromosomes)
     annotation: somename.gff 
