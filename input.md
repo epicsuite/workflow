@@ -24,6 +24,9 @@ ensemble:
     excluded: [list,of,chromosomes]     (a subset of chromosomes from the .fna)
   experiments:
     - name: experiment_A
+      sample: experiment
+      replicate: A  
+      desc: an experiment on the SOMETHING cell line
       timesteps:
         - name: timestep00
           structure: [filepath.fastq, filepath.fastq]
