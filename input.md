@@ -17,35 +17,24 @@ ensemble:
     sequence: somename.fna              (this is the source of the project's list of chromosomes)
     annotation: somename.gff 
   chromosomes:
-    excluded: [list of chromosomes]     (a subset of chromosomes from the .fna)
+    excluded: [list,of,chromosomes]     (a subset of chromosomes from the .fna)
   experiments:
-    - experiment_A
+    - name: experiment_A
       timesteps:
-        - timestep00
-          structure:                    (each structure requires two fastq files as input)
-            - r1.fastq
-            - r2.fastq
+        - name: timestep00
+          structure: [filepath.fastq, filepath.fastq]
           tracks:
-            name01: [list of two files]
-            name02: [list of two files]
-        - timestep01
-          structure:
-            - r1.fastq
-            - r2.fastq
+            name01: [filepath.hic, filepath.hic]
+            name02: [filepath.hic, filepath.hic]
+        - name: timestep01
+          structure: [filepath.fastq, filepath.fastq]
           tracks:
-            name01: [list of two files]
-            name02: [list of two files]
-        - timestep02
-          structure:
-            - r1.fastq
-            - r2.fastq
-          tracks:
-            name01: [list of two files]
-            name02: [list of two files]
-    - experiment_B
+            name01: [filepath.hic, filepath.hic]
+            name02: [filepath.hic, filepath.hic]
+    - name: experiment_B
         (same as shown above)
-    - experiment_C
+    - name: experiment_C
         (same as shown above)
-    - experiment_D
+    - name: experiment_D
         (same as shown above)
 ```
