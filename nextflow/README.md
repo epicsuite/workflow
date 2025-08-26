@@ -38,19 +38,18 @@ b) Edit the partition information to ensure accurate representation of the host 
 
 # Step 4: Prepare input files 
 
-Gather URLs for all input files and create 'fastqs' directory to hold pairs 
+a) Gather URLs for all input files and create 'fastqs' directory to hold pairs 
 of fastq files (for paired-end data) to be processed 
+b) Link or copy fastq files to show up within the fastqs directory
 
-# Step 5: Link or copy fastq files to show up within the fastqs directory
-
-# Step 6: Build the nextflow run command. 
+# Step 5: Build the nextflow run command. 
 
 USE ABSOLUTE PATHS THROUGHOUT. Be sure to specify a valid execution profile (defined in nextflow.config)
 
 example :
 `nextflow epicedge_pipeline.nf --in input.yaml -profile \<your desired nextflow profile\>`
 
-# Step 7 : Examine results
+# Step 6 : Examine results
 
 Nextflow outputs by default, under the 'work' directory. Runs are tracked by a 2 character 
 alphanumeric code. There is a directory under it, that contains the SLURPY outputs.
