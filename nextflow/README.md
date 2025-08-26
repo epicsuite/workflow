@@ -40,6 +40,7 @@ b) Edit the partition information to ensure accurate representation of the host 
 
 a) Gather URLs for all input files and create 'fastqs' directory to hold pairs 
 of fastq files (for paired-end data) to be processed 
+
 b) Link or copy fastq files to show up within the fastqs directory
 
 # Step 5: Build the nextflow run command. 
