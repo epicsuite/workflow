@@ -19,9 +19,10 @@ ensemble:
   license: somename.txt
   reference:
     sequence: somename.fna              (this is the source of the project's list of chromosomes)
-    annotation: somename.gff 
+    annotation: somename.gff
+    mitochondria: some accession number (this is not easily machine readable; some genomes do not have it)
   chromosomes:
-    excluded: [list,of,chromosomes]     (a subset of chromosomes from the .fna)
+    included: [list,of,chromosomes]     (a subset of chromosomes from the .fna)
   experiments:
     - name: experiment_A
       sample: experiment
