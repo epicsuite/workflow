@@ -109,8 +109,8 @@ process combine_struct {
    publishDir 'results', mode: 'move', overwrite:'true'
    
    input:
-   path ("${file_chrom[0]}")
-   
+   val (file_chrom)
+   val (resolution)
    output:
    path ("${file_chrom[0]}/structure.csv")
    
@@ -126,6 +126,7 @@ process combine_struct {
 	chrid = s.split('/')[1].split('_')[-1] # get the chromosome id
 	struct_df = pd.read_csv(s)
         struct_df.loc[:,'chromosome'] = str(chrid)
+        struct_df.loc[:,'id'] = ((struct_df.loc[:,'id']-1) * ${resolution}) + (${resolution}/2)
 	structs.append(struct_df)
    comb_structs = pd.concat(structs)
    comb_structs.to_csv("${file_chrom[0]}/structure.csv", index =  False)
