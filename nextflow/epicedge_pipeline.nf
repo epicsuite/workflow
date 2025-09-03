@@ -1,5 +1,20 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
+import groovy.yaml.YamlSlurper
+
+workflow {
+	main:
+        //proc1(params.first)	
+        proc_files = new YamlSlurper().parse(file(params.inp))
+        channel
+		.from(proc_files['ensemble']['experiments'])
+		.view { v -> "var: $v" }
+}
+
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+import groovy.yaml.YamlSlurper
+
 // This is the primary worklow that will call secondary, named workflows  
 params.refix=""
 params.mtDNA=""
@@ -7,29 +22,36 @@ params.partitions=""
 params.genomelist=""
 params.fastqdir=""
 params.chromosomes = ['1']
+params.inp = "input.yaml"
 
 workflow {
 	main:
+        in_params =  new YamlSlurper().parse(file(params.inp))
+        def refix = in_params['ensemble']['reference']['sequence']
+        def mtDNA = in_params['ensemble']['chromosomes']['mitochondria']
+        def genomelist = in_params['ensemble']['chromosomes']['genomelist']
+        def fastqdir = in_params['ensemble']['experiments']['replicate']['timesteps']['structure']
+        def chromosomes = in_params['ensemble']['chromosomes']['excluded']
 	slurpy_hic(params.refix,params.mtDNA,params.partitions,params.genomelist,params.fastqdir)
-    hics = Channel.watchPath('/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/aligned/*valid*.hic','create,modify')
-                   //.splitCsv()
-                   //.view {"Path $it"}
-                   .take(1)  
-                   .map{it ->
-                      def bname = new File(it[0]).getBaseName()
-                      def fname = it[0]
-                      return [bname,fname]
-                        }
-                   //.view{"$it"}
-    chrom = Channel.of(params.chromosomes)
-                      .splitCsv()
-                      .flatten()
-                      //.map(item -> item[0])
-                      //.view()
+        
+    	hics = Channel.watchPath('/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/aligned/*valid*.hic','create,modify')
+        
+        	.view {"Path $it"}
+        	.take(1)  
+        	.map{it ->
+                	def bname = it.baseName()
+                	def fname = it
+                	return [bname,fname]
+                    }
+
+    	chrom = Channel.of(params.chromosomes)
+                .splitCsv()
+                .flatten()
     // Run the process for each file and variation combination
     file_chrom = hics.combine(chrom)
     // Need to watch and only start hic2struct when a hic file is present
     hic2struct(file_chrom)
+    combine_struct (file_chrom)
 }
 
 process slurpy_hic{
@@ -77,6 +99,35 @@ process hic2struct {
     #echo '${file_chrom[0]}'_chr'${file_chrom[2]}' > "${file_chrom[0]}/${file_chrom[2]}/structure.csv"  
     python -m hic2structure --verbose --resolution 100000 --chromosome "${file_chrom[2]}" --bond-coeff 55 --count-threshold 10 \\
                         -o "${file_chrom[0]}/${file_chrom[2]}" \\
-                        "${file_chrom[1]}"
+                        "${file_chrom[1]}
     """
+}
+
+process combine_struct {
+   // Tell the user/monitor what is going on
+   tag "Combining structures into single file and removing temporary files"
+   publishDir 'results', mode: 'move', overwrite:'true'
+   
+   input:
+   val (file_chrom)
+   val (resolution)
+   output:
+   path ("${file_chrom[0]}/structure.csv")
+   
+   script:
+   """
+   #! /usr/bin/env python
+   import pandas as pd
+   import os.path
+   import subprocess
+   
+   structs = []
+   for s in subprocess.check_output("ls -mr ${file_chrom[0]/*/structure.csv}", shell = True, text = True).split(','):
+	chrid = s.split('/')[1].split('_')[-1] # get the chromosome id
+	struct_df = pd.read_csv(s)
+        struct_df.loc[:,'chromosome'] = str(chrid)
+        struct_df.loc[:,'id'] = ((struct_df.loc[:,'id']-1) * ${resolution}) + (${resolution}/2)
+	structs.append(struct_df)
+   comb_structs = pd.concat(structs)
+   comb_structs.to_csv("${file_chrom[0]}/structure.csv", index =  False)
 }
