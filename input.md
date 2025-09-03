@@ -23,7 +23,7 @@ ensemble:
     annotation: somename.gff
     mitochondria: some accession number     (this is not easily machine readable; some genomes do not have it)
     chromosomes:
-        included: [list,of,chromosomes]     subset of chromosomes from the .fna
+        included: not required; filname or [list, of, names]  
   experiments:
     - name: experiment_A
       sample: experiment
