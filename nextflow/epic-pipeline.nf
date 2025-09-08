@@ -95,9 +95,16 @@ Channel.value(chroms_included).set { CHR_LIST_CH }  // whole list (for concat)
 Channel.from(chroms_included).set   { CHR_CH }      // each chromosome (for fan-out)
 
 /* ============================ WORKFLOW ============================ */
+  /* 0) Build a BWA index for the reference FASTA (once) */
+  Channel.fromPath(ref_sequence, checkIfExists: true).set { REF_CH }
+  def idx_done = bwa_index(REF_CH)          // emits bwa_index_done (one item)
+
+  /* --- GATE slurpy_hic on bwa_index completion --- */
+  // Pair every timestep tuple with the single index token, then drop the token.
+  def gated_tsteps = TSTEPS_FOR_SLURPY.cross(idx_done).map { t, _ -> t }
 
   /* 1) Build standard.name; carry resolution forward as the 3rd value */
-  def std_ch = slurpy_hic(TSTEPS_FOR_SLURPY)   // -> (exp, ts, ref_resolution, file 'standard.name')
+  def std_ch = slurpy_hic(gated_tsteps)     // -> (exp, ts, ref_resolution, file 'standard.name')
 
   /* 2) Fan-out per chromosome: (exp, ts, res, stdfile) × chr → (exp, ts, res, stdfile, chr) */
   def per_chr_ch = std_ch.cross(CHR_CH).map { left, chr ->
@@ -122,6 +129,50 @@ Channel.from(chroms_included).set   { CHR_CH }      // each chromosome (for fan-
   hic_concat(grouped, CHR_LIST_CH)
 }
 
+/* ---- Build BWA index next to the reference FASTA ----
+ * Emits a sentinel file only; the index files are written/copied next to the reference.
+ */
+/* ---- Build BWA index next to the reference FASTA ----
+ * Emits a sentinel file only; the index files are written/copied next to the reference.
+ */
+process bwa_index {
+  tag "bwa_index"
+
+  input:
+  path reference
+
+  output:
+  path "bwa_index.done", emit: bwa_index_done
+
+  script:
+  """
+  set -euo pipefail
+
+  ref_abs=\$(readlink -f "${reference}")
+  ref_dir=\$(dirname "\$ref_abs")
+  ref_base=\$(basename "\$ref_abs")
+  ref_stem="\${ref_base%.*}"
+
+  echo "Building BWA index for: \$ref_abs"
+
+  # Try to build in-place (next to the reference)
+  if bwa index "\$ref_abs"; then
+    :
+  else
+    # Fallback: build locally and copy back
+    cp "\$ref_abs" ./ref.fa
+    bwa index ref.fa
+    shopt -s nullglob
+    for f in ref.fa.*; do
+      ext="\${f#ref.fa.}"
+      cp "\$f" "\$ref_dir/\$ref_stem.\$ext"
+    done
+  fi
+
+  # Sentinel for Nextflow dependency gating
+  echo "\$ref_abs" > bwa_index.done
+  """
+}
 // ---------------- Process 1 ----------------
 // Creates 'abc/xyz.123', renames to 'standard.name' using values from YAML.
 process slurpy_hic {
