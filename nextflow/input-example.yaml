@@ -5,12 +5,13 @@ ensemble:
     desc: a longer description
   license: somename.txt
   reference:
-    sequence: somename.fna
+    sequence: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/GCF_000409795.2_Chlorocebus_sabeus_1.1_genomic.fna
     annotation: somename.gff
     mitochondria: NC_008066.1
     resolution: 100000
     chromosomes:
-        included: chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19, chr20, chr21, chr22, chr23, chr24, chr25, chr26, chr27, chr28, chr29, chr30, chr31  
+        genomelist1: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/Chlorocebus_short.bed
+        genomelist2: NC_023642.1,NC_023643.1  
   experiments:
     - name: UNTR_A
       sample: UNTR

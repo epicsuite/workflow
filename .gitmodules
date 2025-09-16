@@ -1,0 +1,3 @@
+[submodule "nextflow/SLURPY"]
+	path = nextflow/SLURPY
+	url = https://github.com/SLUR-m-Py/SLURPY.git
