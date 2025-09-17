@@ -286,7 +286,7 @@ process slurpy_hic {
   echo "[slurpy_hic] exp=${exp} ts=${ts} structure=${structure}" >&2
   echo "[slurpy_hic] genomelist1 PATH: ${chroms_p1_path}" >&2
   #mkdir -p "\$WATCH_DIR"
-
+  export PATH=\$PATH:/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/
   # --- Run your Python producer here ---
   /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu -M ${mitochondria} --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar
   # --- Watcher: wait forever for a regex match; ensure size stability (no timeout, no poll controls) ---
