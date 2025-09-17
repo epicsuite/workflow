@@ -176,6 +176,9 @@ workflow {
 
   /* 5) Final concat and publish (uses P2 list) */
   hic_concat(grouped, Channel.value(chroms_p2))
+  
+  /* 6) Save input file for data provenance */
+  save_yaml()
 }
 
 /*======================== PROCESSES ========================*/
@@ -305,7 +308,7 @@ process slurpy_hic {
     if (( \${#files[@]} > 0 )); then
       for f in "\${files[@]}"; do
         s1=\$(get_size "\$f" 2>/dev/null || echo 0)
-        sleep 1
+        sleep 300
         s2=\$(get_size "\$f" 2>/dev/null || echo 0)
         if [[ "\$s1" -gt 0 && "\$s1" -eq "\$s2" ]]; then
           target="\$f"
@@ -314,7 +317,7 @@ process slurpy_hic {
         fi
       done
     fi
-    sleep 1
+    sleep 60
   done
 
   mv "\$target" hicfile.hic
@@ -354,13 +357,11 @@ process hic2struct_one {
 // Calls your concat_chroms.py with: --indir --chroms --resolution --outdir
 process hic_concat {
   tag "${exp}/${ts}"
-
-  // publish only the final file to: <outdir>/ensemble/<exp>/<ts>/per_chroms.txt
   publishDir params.outdir, mode: 'copy', saveAs: { produced -> "ensemble/${produced}" }
 
   input:
-  tuple val(exp), val(ts), val(res), path(hicdirs)   // grouped list of per-chrom dirs
-  val chroms                                                // full chromosome list (single value)
+  tuple val(exp), val(ts), val(res), path(hicdirs)
+  val chroms_p2
 
   output:
   file("${exp}/${ts}/structure.csv")
@@ -368,28 +369,56 @@ process hic_concat {
   script:
   """
   set -euo pipefail
+
+  # 1) Ensure output tree
   mkdir -p "${exp}/${ts}"
+  echo "Final step"
 
-  # Persist chromosomes (order preserved)
+  # 2) Persist chromosomes (order preserved) — no indentation in heredoc
   cat > chroms.list <<'EOF'
-  ${chroms.join('\n')}
-  EOF
+${chroms_p2.join('\n')}
+EOF
 
-  # Gather per-chrom outputs into a single dir expected by the concat script
+  # 3) Gather per-chrom outputs into expected layout: gather_<ts>/<chr>/structure.csv
   indir="gather_${ts}"
   mkdir -p "\$indir"
   for d in ${hicdirs}; do
-    base= \$(basename "\$d")
-    cp -a "\$d" "\$indir/\$base"
+    base=\$(basename "\$d")          # e.g. "hic_NC_023642.1"
+    chr="\${base#hic_}"              # -> "NC_023642.1"
+    mkdir -p "\$indir/\$chr"
+    # copy entire contents so concat can find structure.csv inside the chr dir
+    cp -a "\$d"/. "\$indir/\$chr/"
   done
 
-  # Call your concatenation script with required arguments
-  python concat_chroms.py \\
+  # 4) Run concatenation
+  python /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/concat_chroms.py \\
     --indir      "\$indir" \\
-    --chroms     "chroms.list" \\
+    --chroms     chroms.list \\
     --resolution ${res} \\
-    --outdir     "\${exp}/\${ts}"
+    --outdir     "${exp}/${ts}"
 
-  test -s "\${exp}/\${ts}/structure.csv"
+  # 5) Verify expected output
+  test -s "${exp}/${ts}/structure.csv" \\
+    || { echo "[hic_concat] Expected file not produced: ${exp}/${ts}/structure.csv" >&2; exit 1; }
+  """
+}
+//----------------- Process 4: copy input file for data provenance -----------------
+process save_yaml {
+  tag "save_yaml"
+
+  input:
+  path yaml_file from params.yaml
+
+  output:
+  file("input.yaml")
+
+  publishDir params.outdir, mode: 'copy', saveAs: { produced ->
+    "ensemble/${produced}"
+  }
+
+  script:
+  """
+  set -euo pipefail
+  cp "${yaml_file}" input.yaml
   """
 }

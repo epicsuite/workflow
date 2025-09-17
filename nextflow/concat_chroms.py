@@ -63,13 +63,14 @@ def main():
     print(f"[concat_chroms] outdir     : {args.outdir}")
 
     # TODO: implement actual concatenation logic here
+    structs =[]
     for s in chroms:
         struct_df = pd.read_csv(args.indir / s / "structure.csv")
-        struct_df.loc[:,'chromosome'] = str(chrid)
-        struct_df.loc[:,'id'] = ((struct_df.loc[:,'id']-1) * $args.resolution) + (args.resolution/2)
+        struct_df.loc[:,'chromosome'] = str(s)
+        struct_df.loc[:,'id'] = ((struct_df.loc[:,'id']-1) * args.resolution) + (args.resolution/2)
         structs.append(struct_df)
     comb_structs = pd.concat(structs)
-    comb_structs.to_csv(final_out , index =  False)
+    comb_structs[['chromosome','id','x','y','z']].to_csv(final_out , index =  False)
 
 
 if __name__ == "__main__":
