@@ -25,7 +25,7 @@ def ref_sequence   = (ref_block.sequence     ?: '').toString()
 def ref_mito       = (ref_block.mitochondria ?: '').toString()
 def ref_resolution = (ref_block.resolution   ?: '').toString()
 assert ref_sequence,   "reference.sequence missing in YAML"
-assert ref_mito,       "reference.mitochondria missing in YAML"
+//assert ref_mito,       "reference.mitochondria missing in YAML"
 assert ref_resolution, "reference.resolution missing in YAML"
 
 /*----------- Chromosomes: TWO separate lists ----------*/
@@ -164,21 +164,38 @@ workflow {
   /* 3) One hic2structure per chromosome (parallel) */
   def per_chr_dirs = hic2struct_one(per_chr_ch) // -> (exp, ts, res, chr, path 'hic_<chr>')
 
-  /* 4) Group by (exp, ts, res) for concat */
+//  /* 4) Group by (exp, ts, res) for concat */
+//  def grouped = per_chr_dirs
+//    .map { t -> tuple([t[0], t[1], t[2]] as List, t[4]) }   // ([exp,ts,res], hicdir)
+//    .groupTuple()
+//    .map { pair ->
+//      def key  = pair[0] as List
+//      def dirs = pair[1]
+//      tuple(key[0] as String, key[1] as String, key[2] as String, dirs)
+//    }
+//
+  /* 4) Group by (exp, ts) for concat */
   def grouped = per_chr_dirs
-    .map { t -> tuple([t[0], t[1], t[2]] as List, t[4]) }   // ([exp,ts,res], hicdir)
+    .map { t -> tuple([t[0], t[1]] as List, [t[2], t[3], t[4]]) } 
+    // ([exp,ts], [res, chr, hicdir])
     .groupTuple()
     .map { pair ->
-      def key  = pair[0] as List
-      def dirs = pair[1]
-      tuple(key[0] as String, key[1] as String, key[2] as String, dirs)
+      def key   = pair[0] as List    // [exp, ts]
+      def items = pair[1] as List    // [[res, chr, hicdir], ...]
+      def res   = items[0][0]        // resolution is same for all
+      def dirs  = items.collect { it[2] } // gather hic_<chr> dirs
+      tuple(key[0], key[1], res, dirs)
     }
-
   /* 5) Final concat and publish (uses P2 list) */
   hic_concat(grouped, Channel.value(chroms_p2))
   
   /* 6) Save input file for data provenance */
-  save_yaml()
+  // Make channels for the two inputs
+  def YAML_CH = Channel.fromPath(params.yaml, checkIfExists: true)
+  def GL1_CH  = Channel.fromPath(genomelist1_path, checkIfExists: true)
+
+  // Invoke the process with those channels
+  save_inp(YAML_CH, GL1_CH)
 }
 
 /*======================== PROCESSES ========================*/
@@ -291,7 +308,15 @@ process slurpy_hic {
   #mkdir -p "\$WATCH_DIR"
   export PATH=\$PATH:/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/
   # --- Run your Python producer here ---
-  /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu -M ${mitochondria} --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar
+  cmd="/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar"
+    # add mitochondria flag only if present
+  if [[ -n "${mitochondria}" ]]; then
+    cmd="\$cmd --mitochondria ${mitochondria}"
+  fi
+
+  echo "[slurpy_hic] running: \$cmd" >&2
+  eval \$cmd |& tee slurpy_hic.log
+
   # --- Watcher: wait forever for a regex match; ensure size stability (no timeout, no poll controls) ---
     # --- Watcher: wait indefinitely for FIXED_REGEX match, ensure size stability ---
   cat > watcher.sh <<'BASH'
@@ -331,7 +356,8 @@ process slurpy_hic {
 // ---------------- Process 2: hic2struct_one (parallel per chromosome) ----------------
 process hic2struct_one {
   tag "${exp}/${ts} [${chr}]"
-
+  errorStrategy 'ignore'
+  
   input:
   tuple val(exp), val(ts), val(res), path(stdfile), val(chr)
 
@@ -349,7 +375,7 @@ process hic2struct_one {
   # Run hic2structure once per chromosome, using resolution from YAML
   python -m hic2structure --verbose --resolution ${res} --chromosome ${chr} --bond-coeff 55 --count-threshold 10 -o "\$outdir" ${stdfile}
   module unload openmpi
-  #compgen -G "\$outdir/*" > /dev/null || { echo "[hic2struct_one] No output for chromosome ${chr}" >&2; exit 1; }
+  compgen -G "\$outdir/*" > /dev/null || { echo "[hic2struct_one] No output for chromosome ${chr}" >&2; exit 1; }
   """
 }
 
@@ -357,11 +383,14 @@ process hic2struct_one {
 // Calls your concat_chroms.py with: --indir --chroms --resolution --outdir
 process hic_concat {
   tag "${exp}/${ts}"
-  publishDir params.outdir, mode: 'copy', saveAs: { produced -> "ensemble/${produced}" }
+
+  publishDir params.outdir, mode: 'copy', saveAs: { produced ->
+    "ensemble/experiments/${produced}"
+  }
 
   input:
   tuple val(exp), val(ts), val(res), path(hicdirs)
-  val chroms_p2
+  val chroms_list
 
   output:
   file("${exp}/${ts}/structure.csv")
@@ -369,56 +398,65 @@ process hic_concat {
   script:
   """
   set -euo pipefail
-
-  # 1) Ensure output tree
-  mkdir -p "${exp}/${ts}"
-  echo "Final step"
-
-  # 2) Persist chromosomes (order preserved) — no indentation in heredoc
-  cat > chroms.list <<'EOF'
-${chroms_p2.join('\n')}
-EOF
-
-  # 3) Gather per-chrom outputs into expected layout: gather_<ts>/<chr>/structure.csv
+  
+  out="${exp}/${ts}"
+  mkdir -p "\$out"
+  
   indir="gather_${ts}"
   mkdir -p "\$indir"
+  
+  # Build dynamic list only from per-chrom dirs that actually produced structure.csv
+  : > chroms.dynamic
   for d in ${hicdirs}; do
-    base=\$(basename "\$d")          # e.g. "hic_NC_023642.1"
-    chr="\${base#hic_}"              # -> "NC_023642.1"
-    mkdir -p "\$indir/\$chr"
-    # copy entire contents so concat can find structure.csv inside the chr dir
-    cp -a "\$d"/. "\$indir/\$chr/"
+    base=\$(basename "\$d")      # e.g. hic_NC_023642.1
+    chr="\${base#hic_}"          # -> NC_023642.1
+    if [ -s "\$d/structure.csv" ]; then
+      mkdir -p "\$indir/\$chr"
+      cp -a "\$d"/. "\$indir/\$chr/"
+      echo "\$chr" >> chroms.dynamic   # <-- on its own line
+    else
+      echo "[hic_concat] Skipping chromosome \$chr (no structure.csv)" >&2
+    fi
   done
+  
+  # If nothing succeeded for this timestep, exit cleanly
+  if [ ! -s chroms.dynamic ]; then
+    echo "[hic_concat] No valid chromosome data for ${exp}/${ts}" >&2
+    exit 0
+  fi
+
 
   # 4) Run concatenation
   python /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/concat_chroms.py \\
     --indir      "\$indir" \\
-    --chroms     chroms.list \\
+    --chroms     chroms.dynamic \\
     --resolution ${res} \\
-    --outdir     "${exp}/${ts}"
+    --outdir     "\$out"
 
   # 5) Verify expected output
-  test -s "${exp}/${ts}/structure.csv" \\
-    || { echo "[hic_concat] Expected file not produced: ${exp}/${ts}/structure.csv" >&2; exit 1; }
-  """
+  test -s "\$out/structure.csv" \
+  || { echo "[hic_concat] Expected file not produced: \$out/structure.csv" >&2; exit 1; }
+"""
 }
-//----------------- Process 4: copy input file for data provenance -----------------
-process save_yaml {
-  tag "save_yaml"
+//----------------- Process 4: copy input files for data provenance -----------------
+/* ---------- process definition (no `from` here) ---------- */
+process save_inp {
+  tag "save_inp"
 
   input:
-  path yaml_file from params.yaml
+  path yaml_file
+  path chroms_file
 
   output:
   file("input.yaml")
+  file("results_autosomes.tsv")
 
-  publishDir params.outdir, mode: 'copy', saveAs: { produced ->
-    "ensemble/${produced}"
-  }
+  publishDir params.outdir, mode: 'copy', saveAs: { produced -> "ensemble/provenance/${produced}" }
 
   script:
   """
   set -euo pipefail
-  cp "${yaml_file}" input.yaml
+  cp "${yaml_file}"   input.yaml
+  cp "${chroms_file}" autosomes.tsv
   """
 }
