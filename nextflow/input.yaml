@@ -1,0 +1,33 @@
+ensemble:
+  version: x.x
+  meta:
+    title: a title
+    desc: a longer description
+  license: somename.txt
+  reference:
+    sequence: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/GCF_000409795.2_Chlorocebus_sabeus_1.1_genomic.fna
+    annotation: somename.gff
+    mitochondria: NC_008066.1
+    resolution: 100000
+    chromosomes:
+        genomelist1: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/Chlorocebus_short.bed
+        genomelist2: NC_023642.1,NC_023643.1  
+  experiments:
+    - name: UNTR_A
+      sample: UNTR
+      replicate: A  
+      desc: HiC on UNTR_A
+      timesteps:
+        - name: 12hpi
+          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/UNTR_A/12hpi
+        - name: 24hpi
+          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/UNTR_A/24hpi
+    - name: VACV_A
+      sample: VACV
+      replicate: A  
+      desc: HiC on VACV_A
+      timesteps:
+        - name: 12hpi
+          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/VACV_A/12hpi
+        - name: 24hpi
+          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/VACV_A/24hpi
