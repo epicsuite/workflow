@@ -311,7 +311,7 @@ process slurpy_hic {
   cmd="/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar"
     # add mitochondria flag only if present
   if [[ -n "${mitochondria}" ]]; then
-    cmd="\$cmd --mitochondria ${mitochondria}"
+    cmd="\$cmd --mtDNA ${mitochondria}"
   fi
 
   echo "[slurpy_hic] running: \$cmd" >&2
