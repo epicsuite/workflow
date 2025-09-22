@@ -457,6 +457,6 @@ process save_inp {
   """
   set -euo pipefail
   cp "${yaml_file}"   input.yaml
-  cp "${chroms_file}" autosomes.tsv
+  cp "${chroms_file}" results_autosomes.tsv
   """
 }
