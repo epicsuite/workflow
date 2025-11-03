@@ -33,13 +33,15 @@ ensemble:
         - name: timestep00
           structure: [filepath.fastq, filepath.fastq]
           tracks:
-            - name01: [filepath.hic, filepath.hic]
-            - name02: [filepath.hic, filepath.hic]
+            - name01: [filepath.fastq, filepath.fastq]
+            - name02: [filepath.fastq, filepath.fastq]
         - name: timestep01
           structure: [filepath.fastq, filepath.fastq]
+          struct_stage: [1,2,3] switch to allow 1- full workflow, 2- start with precomputed HiC, 3- load in precomputed structure
+                                for viewer
           tracks:
-            - name01: [filepath.hic, filepath.hic]
-            - name02: [filepath.hic, filepath.hic]
+            - name01: [filepath.fastq, filepath.fastq]
+            - name02: [filepath.fastq, filepath.fastq]
     - name: experiment_B
         (same as shown above)
     - name: experiment_C
