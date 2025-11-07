@@ -5,29 +5,31 @@ ensemble:
     desc: a longer description
   license: somename.txt
   reference:
-    sequence: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/GCF_000409795.2_Chlorocebus_sabeus_1.1_genomic.fna
+    sequence: /path/to/sequence.fa
     annotation: somename.gff
-    mitochondria: NC_008066.1
+    mitochondria: (optional) Accession for mitochondrial contig, if present
     resolution: 100000
-    chromosomes:
-        genomelist1: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/Chlorocebus_short.bed
-        genomelist2: NC_023642.1,NC_023643.1  
+    contigs: /path/to/bedfile
   experiments:
-    - name: UNTR_A
-      sample: UNTR
-      replicate: A  
-      desc: HiC on UNTR_A
+    - name: Treatment
+      sample: Name of organism/virus
+      replicate: 1  
+      desc: Description of sample
       timesteps:
-        - name: 12hpi
-          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/UNTR_A/12hpi
-        - name: 24hpi
-          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/UNTR_A/24hpi
-    - name: VACV_A
-      sample: VACV
-      replicate: A  
-      desc: HiC on VACV_A
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+    - name: Treatment
+      sample: Name of organism/virus
+      replicate: 1  
+      desc: Description of sample
       timesteps:
-        - name: 12hpi
-          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/VACV_A/12hpi
-        - name: 24hpi
-          structure: /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/input/VACV_A/24hpi
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC

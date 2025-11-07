@@ -1,324 +1,173 @@
-#!/usr/bin/env nextflow
 nextflow.enable.dsl=2
-import groovy.yaml.YamlSlurper
 
-/*====================== PARAMS ======================*/
-params.yaml   = params.yaml ?: null
-params.inp    = params.inp  ?: null
+/************************************************************
+ *                   PARAMETERS & IMPORTS
+ ************************************************************/
+params.yaml   = params.yaml   ?: 'input.yaml'
 params.outdir = params.outdir ?: 'results'
 
-/*================== YAML: parse once =================*/
-def yaml_path = (params.yaml ?: params.inp ?: 'input.yaml') as String
-def yaml_file = new File(yaml_path).getCanonicalFile()
-assert yaml_file.exists() && yaml_file.isFile() : "YAML not found: ${yaml_file}"
+import groovy.yaml.YamlSlurper
+import java.util.zip.GZIPInputStream
 
-def cfg = new YamlSlurper().parse(yaml_file)
-assert cfg instanceof Map : "Top-level YAML must be a mapping"
-
-def ens         = cfg.ensemble ?: [:]
-def experiments = (ens.experiments as List) ?: []
-assert experiments, "YAML missing or empty: ensemble.experiments"
-
-/*=========== Reference ===========*/
-def ref_block      = ens.reference ?: [:]
-def ref_sequence   = (ref_block.sequence     ?: '').toString()
-def ref_mito       = (ref_block.mitochondria ?: '').toString()
-def ref_resolution = (ref_block.resolution   ?: '').toString()
-assert ref_sequence,   "reference.sequence missing in YAML"
-//assert ref_mito,       "reference.mitochondria missing in YAML"
-assert ref_resolution, "reference.resolution missing in YAML"
-
-/*----------- Chromosomes: TWO separate lists ----------*/
-def chroms_block     = (ref_block.chromosomes ?: [:]) as Map
-def genomelist1_path = chroms_block.genomelist1 ? chroms_block.genomelist1.toString() : null
-def genomelist2_raw  = chroms_block.genomelist2 ? chroms_block.genomelist2.toString() : null
-assert genomelist1_path : "reference.chromosomes.genomelist1 must be provided"
-assert genomelist2_raw  : "reference.chromosomes.genomelist2 must be provided"
-
-/* genomelist1: pass PATH/URL string through (do NOT read contents) */
-def chroms_p1_path = genomelist1_path
-println "[CHROMS] P1 path=${chroms_p1_path}"
-
-/* genomelist2: file OR comma-separated list → expand to IDs */
-def readChromFile = { String path ->
-  def f = new File(path)
-  assert f.exists() && f.isFile() : "Chromosome list not found: ${path}"
-  f.readLines()
-   .collect { it.trim() }
-   .findAll { it && !it.startsWith('#') }
-   .collect { line -> line.split(/\s+/)[0] }
-   .findAll { it }
-}
-
-List<String> chroms_p2
-def gl2 = new File(genomelist2_raw)
-if (gl2.exists() && gl2.isFile()) {
-  chroms_p2 = readChromFile(genomelist2_raw)
-  println "[CHROMS] P2 count=${chroms_p2.size()} from file ${genomelist2_raw}"
-}
-else {
-  chroms_p2 = genomelist2_raw
-                .split(/\s*,\s*/)
-                .collect { it.trim() }
-                .findAll { it }
-  println "[CHROMS] P2 count=${chroms_p2.size()} from comma-separated list"
-}
-assert chroms_p2, "genomelist2 produced no chromosome IDs"
-
-/*====== helpers ======*/
+/************************************************************
+ *                   HELPERS
+ ************************************************************/
 def firstNonNull = { Map m, List<String> keys ->
   for (k in keys) { def v = m[k]; if (v != null && v.toString().trim()) return v.toString() }
   return null
 }
-def joinPath = { String base, String rel ->
-  if (!base) return rel
-  if (!rel)  return base
-  new File(base, rel).getPath()
-}
-def structure_root = (ens.structure_root ?: ens.root ?: ens.base ?: null)?.toString()
 
-/*====== Build EXACT 6-field tuples: (exp, ts, structure, ref, mito, res) ======*/
+/* Read first column from TSV/BED(.gz); skip comments & BED headers */
+def readFirstColumn = { String path ->
+  def f = new File(path)
+  assert f.exists() && f.isFile() : "Contig list file not found: ${path}"
+  InputStream is = new FileInputStream(f)
+  if (f.name.toLowerCase().endsWith('.gz')) is = new GZIPInputStream(is)
+  def br = new BufferedReader(new InputStreamReader(is))
+  try {
+    List<String> out = []
+    String line
+    while ((line = br.readLine()) != null) {
+      line = line.trim()
+      if (!line) continue
+      if (line.startsWith('#') || line.startsWith('track') || line.startsWith('browser')) continue
+      out << line.split('\t', -1)[0].trim()
+    }
+    return new LinkedHashSet<String>(out).toList() // dedupe, preserve order
+  }
+  finally { br?.close(); is?.close() }
+}
+
+/************************************************************
+ *                   PARSE YAML (MAIN)
+ ************************************************************/
+def yamlFile = new File(params.yaml).getCanonicalFile()
+assert yamlFile.exists() && yamlFile.isFile() : "YAML not found: ${yamlFile}"
+
+def cfg = new YamlSlurper().parse(yamlFile)
+assert cfg instanceof Map && cfg.ensemble instanceof Map : "Invalid YAML: missing 'ensemble'"
+
+def refBlock    = (cfg.ensemble.reference ?: [:]) as Map
+def refSeq      = (refBlock.sequence     ?: '').toString()
+def refMito     = (refBlock.mitochondria ?: '')?.toString()   // optional
+def refRes      = (refBlock.resolution   ?: '').toString()
+def contigsFile = (refBlock.contigs      ?: '').toString()
+assert refSeq && refRes && contigsFile : "YAML must provide reference.sequence, reference.resolution, reference.contigs"
+
+List<String> CONTIGS = readFirstColumn(contigsFile)
+println "[CONTIGS] Loaded ${CONTIGS.size()} contigs from ${contigsFile}"
+assert CONTIGS && !CONTIGS.isEmpty() : "No contigs parsed from ${contigsFile}"
+
+def experiments = cfg.ensemble.experiments
+assert experiments instanceof List && !experiments.isEmpty() : "YAML: ensemble.experiments must be a non-empty list"
+
+/* Build rows of: (exp, ts, structure, struct_stage, ref, mito, res) */
 List<List> rows = []
 experiments.each { e ->
-  def exp_name = firstNonNull(e as Map, ['name','id','exp'])
-  assert exp_name : "Experiment missing a name/id/exp"
-
-  def exp_struct = firstNonNull(e as Map, ['structure','dir','path','url'])
-  if (exp_struct && structure_root) exp_struct = joinPath(structure_root, exp_struct)
-
-  def tss_any = (e.timesteps ?: e.steps ?: e.timepoints)
-  assert tss_any != null : "Experiment '${exp_name}' has no timesteps"
-
-  if (tss_any instanceof Map) {
-    tss_any.each { k, v ->
-      def ts_name = k?.toString()
-      String ts_struct = (v instanceof Map) ? firstNonNull(v as Map, ['structure','dir','path','url']) : null
-      if (!ts_struct) ts_struct = exp_struct
-      if (ts_struct && structure_root) ts_struct = joinPath(structure_root, ts_struct)
-      assert ts_struct : "Experiment '${exp_name}' timestep '${ts_name}' missing structure"
-      rows << [exp_name, ts_name, ts_struct, ref_sequence, ref_mito, ref_resolution]
-    }
-  }
-  else if (tss_any instanceof List) {
-    tss_any.eachWithIndex { tsObj, i ->
-      String ts_name, ts_struct
-      if (tsObj instanceof Map) {
-        ts_name   = firstNonNull(tsObj as Map, ['name','id','timestep','timepoint','ts'])
-        ts_struct = firstNonNull(tsObj as Map, ['structure','dir','path','url'])
-      } else {
-        ts_name   = tsObj?.toString()
-      }
-      if (!ts_struct) ts_struct = exp_struct
-      if (ts_struct && structure_root) ts_struct = joinPath(structure_root, ts_struct)
-      assert ts_name   : "Experiment '${exp_name}' timestep #${i+1} missing name"
-      assert ts_struct : "Experiment '${exp_name}' timestep '${ts_name}' missing structure"
-      rows << [exp_name, ts_name, ts_struct, ref_sequence, ref_mito, ref_resolution]
-    }
-  }
-  else {
-    assert false : "Experiment '${exp_name}' timesteps must be a list or a map; got: ${tss_any?.getClass()?.name}"
+  def expName = firstNonNull(e as Map, ['name','id','exp']) ?: 'UNKNOWN'
+  def timesteps = e.timesteps ?: []
+  assert timesteps instanceof List && !timesteps.isEmpty() : "Experiment '${expName}' needs a non-empty 'timesteps' list"
+  timesteps.eachWithIndex { ts, i ->
+    assert ts instanceof Map : "Experiment '${expName}' timestep #${i+1} must be a map"
+    def tsName   = firstNonNull(ts as Map, ['name','id','timestep','timepoint','ts'])
+    def tsStruct = firstNonNull(ts as Map, ['structure','dir','path','url'])
+    def stage    = (ts.struct_stage ?: ts.proc_stage ?: 1).toString()
+    assert tsName && tsStruct : "Experiment '${expName}' timestep missing name/structure"
+    rows << [expName, tsName, tsStruct, stage, refSeq, refMito, refRes]
   }
 }
 
-if (!rows || !rows.every { it instanceof List && it.size()==6 }) {
-  def bad = rows.find { !(it instanceof List) || it.size()!=6 }
-  throw new IllegalStateException("rows contains non-6 item: ${bad} (type=${bad?.getClass()?.name}); rows.size=${rows?.size()}")
-}
-println "[YAML] Built ${rows.size()} tuples (exp, ts, structure, ref, mito, res)"
-rows.take(5).each { println "[YAML] row: ${it}" }
+println "[YAML] Built ${rows.size()} tuples (exp, ts, structure, stage, ref, mito, res)"
 
-/* ---- Channel of true 6-field Nextflow tuples ---- */
-def TSTEPS6 = Channel
+/* Global channel with tuple: (exp, ts, structure, struct_stage, reference, mitochondria, resolution) */
+TSTEPS7 = Channel
   .from(rows)
-  .map { lst -> tuple(lst[0], lst[1], lst[2], lst[3], lst[4], lst[5]) }
-
-/*========================= WORKFLOW =========================*/
-workflow {
-
-  /* 0) BWA index once */
-  Channel.fromPath(ref_sequence, checkIfExists: true).set { REF_CH }
-  def idx_done = bwa_index(REF_CH).bwa_index_done
-
-  /* Gate: combine adds token as 7th; keep only the first 6 fields */
-  def gated_tsteps = TSTEPS6
-    .combine(idx_done)                         // -> (exp, ts, structure, ref, mito, res, token)
-    .map { t -> tuple(t[0], t[1], t[2], t[3], t[4], t[5]) }
-
-  // Debug: shows ts like 12hpi / 24hpi
-  gated_tsteps.view { t -> "GATED_TSTEPS -> ts=${t[1]} full=${t}" }
-
-  /* 1) Provide genomelist1 PATH (string) to slurpy_hic */
-  def CHROMS_P1_PATH_CH = Channel.value(chroms_p1_path)
-  def std_input = gated_tsteps
-    .combine(CHROMS_P1_PATH_CH)                // -> (exp, ts, structure, ref, mito, res, chroms_p1_path)
-    .map { t -> tuple(t[0], t[1], t[2], t[3], t[4], t[5], t[6]) }
-
-  def std_ch = slurpy_hic(std_input)           // -> (exp, ts, res, file 'hicfile.hic')
-
-  /* 2) Fan-out PER CHROMOSOME using ONLY P2 list (flatMap + collect) */
-  def per_chr_ch = std_ch.flatMap { left ->
-    def (exp, ts, res, stdfile) = left
-    chroms_p2.collect { chr -> tuple(exp, ts, res, stdfile, chr as String) }
+  .map { r ->
+    def exp  = r[0] as String
+    def ts   = r[1] as String
+    def dir  = r[2] as String
+    def stg  = r[3]?.toString()
+    def ref  = r[4] as String
+    def mito = r[5]?.toString()
+    def res  = r[6]?.toString()
+    tuple(exp, ts, dir, stg, ref, mito, res)
   }
 
-  /* 3) One hic2structure per chromosome (parallel) */
-  def per_chr_dirs = hic2struct_one(per_chr_ch) // -> (exp, ts, res, chr, path 'hic_<chr>')
+/************************************************************
+ *                   PROCESSES
+ ************************************************************/
 
-//  /* 4) Group by (exp, ts, res) for concat */
-//  def grouped = per_chr_dirs
-//    .map { t -> tuple([t[0], t[1], t[2]] as List, t[4]) }   // ([exp,ts,res], hicdir)
-//    .groupTuple()
-//    .map { pair ->
-//      def key  = pair[0] as List
-//      def dirs = pair[1]
-//      tuple(key[0] as String, key[1] as String, key[2] as String, dirs)
-//    }
-//
-  /* 4) Group by (exp, ts) for concat */
-  def grouped = per_chr_dirs
-    .map { t -> tuple([t[0], t[1]] as List, [t[2], t[3], t[4]]) } 
-    // ([exp,ts], [res, chr, hicdir])
-    .groupTuple()
-    .map { pair ->
-      def key   = pair[0] as List    // [exp, ts]
-      def items = pair[1] as List    // [[res, chr, hicdir], ...]
-      def res   = items[0][0]        // resolution is same for all
-      def dirs  = items.collect { it[2] } // gather hic_<chr> dirs
-      tuple(key[0], key[1], res, dirs)
-    }
-  /* 5) Final concat and publish (uses P2 list) */
-  hic_concat(grouped, Channel.value(chroms_p2))
-  
-  /* 6) Save input file for data provenance */
-  // Make channels for the two inputs
-  def YAML_CH = Channel.fromPath(params.yaml, checkIfExists: true)
-  def GL1_CH  = Channel.fromPath(genomelist1_path, checkIfExists: true)
-
-  // Invoke the process with those channels
-  save_inp(YAML_CH, GL1_CH)
-}
-
-/*======================== PROCESSES ========================*/
-
+/* ---------- BWA index ---------- */
 process bwa_index {
-  tag "bwa_index"
+  tag 'bwa_index'
   input:
-  path reference
+    path ref_fa
   output:
-  path "bwa_index.done", emit: bwa_index_done
-  path "bwa_index.log",  emit: bwa_index_log
+    path 'bwa_index.done', emit: bwa_index_done
   script:
   """
   set -euo pipefail
-  ref_abs=\$(readlink -f "${reference}")
-  ref_dir=\$(dirname -- "\$ref_abs")
-  ref_bn=\$(basename -- "\$ref_abs")
-
-  have_index() {
-    local dir="\$1"; local bn="\$2"
-    local -a exts=(amb ann bwt pac sa)
-    for ext in "\${exts[@]}"; do
-      if ! find -L "\$dir" -maxdepth 1 -type f -name "\$bn.\$ext" -size +0c -print -quit | grep -q . ; then
-        return 1
-      fi
-    done
-    return 0
-  }
-
-  : > bwa_index.log
+  ref="${ref_fa}"
+  log="bwa_index.log"
   {
-    echo "[INFO] Index target : \$ref_abs"
-    if have_index "\$ref_dir" "\$ref_bn"; then
-      echo "[INFO] BWA index already present — skipping build."
+    echo "[bwa_index] reference = \$ref"
+    if [ -s "\${ref}.amb" ] && [ -s "\${ref}.ann" ] && [ -s "\${ref}.bwt" ] \
+       && [ -s "\${ref}.pac" ] && [ -s "\${ref}.sa" ]; then
+      echo "[bwa_index] Existing index detected; skipping."
     else
-      echo "[INFO] Running bwa index..."
-      bwa index "\$ref_abs"
-      have_index "\$ref_dir" "\$ref_bn" || { echo "[ERROR] Index missing after run" >&2; exit 1; }
+      echo "[bwa_index] Building BWA index..."
+      bwa index "\$ref"
+      echo "[bwa_index] Build complete."
     fi
-  } | tee -a bwa_index.log
-
-  echo "\$ref_abs" > bwa_index.done
+  } | tee "\$log"
+  echo "OK" > bwa_index.done
   """
 }
 
-//process slurpy_hic {
-//  tag "${exp}/${ts}"
-//  input:
-//  tuple val(exp), val(ts), val(structure), val(reference), val(mitochondria), val(ref_resolution), val(chroms_p1_path)
-//  output:
-//  tuple val(exp), val(ts), val(ref_resolution), file('hicfile.hic')
-//  script:
-//  """
-//  set -euo pipefail
-//  echo "[slurpy_hic] exp=${exp} ts=${ts} structure=${structure}" >&2
-//  echo "[slurpy_hic] using genomelist1 PATH: ${chroms_p1_path}" >&2
-//  ln -s "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/" ./SLURPY
-//  ln -s "${structure}" ./fastq
-//  # run SLUR-(M)-PY
-//  /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu -M ${mitochondria} --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar
-//  watch_pattern="aligned/*valid*hic"
-//  echo "[slurpy_hic] waiting for pattern: \${watch_pattern}" >&2
-//
-//  get_mtime() { stat -c %Y "\$1" 2>/dev/null || stat -f %m "\$1" 2>/dev/null || echo 0; }
-//  get_size()  { stat -c %s "\$1" 2>/dev/null || wc -c < "\$1"; }
-//
-//  target=""
-//  while :; do
-//    files=( \$(ls -1 "\$watch_pattern" 2>/dev/null || true) )
-//    if [ "\${#files[@]}" -gt 0 ]; then
-//      for f in "\${files[@]}"; do
-//        s1=\$(get_size "\$f" 2>/dev/null || echo 0)
-//        sleep 2
-//        s2=\$(get_size "\$f" 2>/dev/null || echo 0)
-//        if [ "\$s1" -gt 0 ] && [ "\$s1" -eq "\$s2" ]; then
-//          target="\$f"
-//          echo "[slurpy_hic] stable file: \$target (size=\$s2)" >&2
-//          break 2
-//        fi
-//      done
-//    fi
-//    sleep 1
-//  done
-//
-//  mv aligned/*valid*hic hicfile.hic
-//  """
-//}
-
+/* ---------- slurpy_hic (original IO) WITH WATCHER ---------- *
+ * input : tuple val(exp), val(ts), val(structure), val(reference), val(mitochondria), val(ref_resolution), val(contigs_file)
+ * output: tuple val(exp), val(ts), val(ref_resolution), path('hicfile.hic')
+ */
 process slurpy_hic {
   tag "${exp}/${ts}"
-
   input:
-  tuple val(exp), val(ts), val(structure), val(reference), val(mitochondria), val(ref_resolution), val(chroms_p1_path)
-
+    tuple val(exp), val(ts), val(structure), val(reference), val(mitochondria), val(ref_resolution), val(contigs_file)
   output:
-  tuple val(exp), val(ts), val(ref_resolution), file('hicfile.hic')
-
+    tuple val(exp), val(ts), val(ref_resolution), path('hicfile.hic')
   script:
   """
   set -euo pipefail
 
-  # Symlink structure into work dir (by basename)
-  ln -s "${structure}" "./fastq"
-  ln -s "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/" ./SLURPY
-  #WATCH_DIR="aligned"
-  #FIXED_REGEX=".*valid.hic"   # <--- your fixed regex; adjust as needed
+  # Symlink structure into work dir (by basename); -n tolerates existing links
+  ln -sfn "${structure}" "./fastq"
+  ln -sfn "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/" "./SLURPY"
 
   echo "[slurpy_hic] exp=${exp} ts=${ts} structure=${structure}" >&2
-  echo "[slurpy_hic] genomelist1 PATH: ${chroms_p1_path}" >&2
-  #mkdir -p "\$WATCH_DIR"
+  echo "[slurpy_hic] contigs (genomelist) PATH: ${contigs_file}" >&2
+
+  # Ensure SLURPY scripts are reachable
   export PATH=\$PATH:/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/
-  # --- Run your Python producer here ---
-  cmd="/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py -r ${reference} -P fast,tb,gpu --fq ${structure} -G ${chroms_p1_path} -F 150000 15000000 -J /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar"
-    # add mitochondria flag only if present
+
+  # Build the command as an array (no eval, no backslash-continues)
+  declare -a cmd
+  cmd=( "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py"
+        -r "${reference}"
+        -P "fast,tb,gpu"
+        --fq "${structure}"
+        -G "${contigs_file}"
+        -F 150000 15000000
+        -J "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/juicer_tools_1.22.01.jar"
+      )
+
+  # add mitochondria flag only if present
   if [[ -n "${mitochondria}" ]]; then
-    cmd="\$cmd --mtDNA ${mitochondria}"
+    cmd+=( --mtDNA "${mitochondria}" )
   fi
 
-  echo "[slurpy_hic] running: \$cmd" >&2
-  eval \$cmd |& tee slurpy_hic.log
+  echo "[slurpy_hic] running:" "\${cmd[@]}" >&2
+  "\${cmd[@]}" |& tee slurpy_hic.log
 
-  # --- Watcher: wait forever for a regex match; ensure size stability (no timeout, no poll controls) ---
-    # --- Watcher: wait indefinitely for FIXED_REGEX match, ensure size stability ---
+  # Watcher: wait indefinitely; require size-stable file matching regex, then rename to hicfile.hic
   cat > watcher.sh <<'BASH'
   set -euo pipefail
   watch_dir="aligned"
@@ -345,64 +194,57 @@ process slurpy_hic {
     sleep 60
   done
 
-  mv "\$target" hicfile.hic
+  mv "$target" hicfile.hic
   BASH
 
-  #export WATCH_DIR FIXED_REGEX
   bash watcher.sh
   """
 }
 
-// ---------------- Process 2: hic2struct_one (parallel per chromosome) ----------------
+/* ---------- hic2struct_one (original IO) ---------- *
+ * input : tuple val(exp), val(ts), val(ref_resolution), path(hicfile), val(contig)
+ * output: tuple val(exp), val(ts), val(ref_resolution), val(contig), path("hic_<contig>") optional true
+ */
 process hic2struct_one {
-  tag "${exp}/${ts} [${chr}]"
-  errorStrategy 'ignore'
-  
+  tag "${exp}/${ts} [${contig}]"
+  errorStrategy { task.attempt < 20 ? 'retry' : 'ignore' }
+  maxErrors 240
+  maxForks 4
   input:
-  tuple val(exp), val(ts), val(res), path(stdfile), val(chr)
-
+    tuple val(exp), val(ts), val(ref_resolution), path(hicfile), val(contig)
   output:
-  tuple val(exp), val(ts), val(res), val(chr), path("hic_${chr}")
-
+    tuple val(exp), val(ts), val(ref_resolution), val(contig), path("hic_${contig}") optional true
   script:
   """
   set -euo pipefail
-  outdir="hic_${chr}"
-  echo "Output will be put in \$outdir"
+  outdir="hic_${contig}"
   mkdir -p "\$outdir"
-  echo "Processing experiment ${exp}, time step ${ts}, chromosome ${chr}, at resolution of ${res} bp"
+  echo "[hic2struct_one] EXP=${exp} TS=${ts} CONTIG=${contig} RES=${ref_resolution}" >&2
+
   module load openmpi
   # Run hic2structure once per chromosome, using resolution from YAML
-  python -m hic2structure --verbose --resolution ${res} --chromosome ${chr} --bond-coeff 55 --count-threshold 10 -o "\$outdir" ${stdfile}
+  python -m hic2structure --verbose --resolution ${ref_resolution} --chromosome ${contig} --bond-coeff 55 --count-threshold 10 -o "\$outdir" ${hicfile}
   module unload openmpi
-  compgen -G "\$outdir/*" > /dev/null || { echo "[hic2struct_one] No output for chromosome ${chr}" >&2; exit 1; }
+  compgen -G "\$outdir/*" > /dev/null || { echo "[hic2struct_one] No output for chromosome ${contig}" >&2; exit 1; }
   """
 }
 
-// ---------------- Process 3: hic_concat (fan-in) ----------------
-// Calls your concat_chroms.py with: --indir --chroms --resolution --outdir
+/* ---------- hic_concat ---------- */
 process hic_concat {
   tag "${exp}/${ts}"
-
-  publishDir params.outdir, mode: 'copy', saveAs: { produced ->
-    "ensemble/experiments/${produced}"
-  }
-
+  publishDir params.outdir, mode: 'copy', saveAs: { produced -> "ensemble/experiments/${produced}" }
   input:
-  tuple val(exp), val(ts), val(res), path(hicdirs)
-  val chroms_list
-
+    tuple val(exp), val(ts), val(ref_resolution), path(hicdirs)
   output:
-  file("${exp}/${ts}/structure.csv")
-
+    path("${exp}/${ts}/structure.csv")
   script:
   """
   set -euo pipefail
-  
+
   out="${exp}/${ts}"
   mkdir -p "\$out"
-  
-  indir="gather_${ts}"
+
+    indir="gather_${ts}"
   mkdir -p "\$indir"
   
   # Build dynamic list only from per-chrom dirs that actually produced structure.csv
@@ -430,7 +272,7 @@ process hic_concat {
   python /panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/concat_chroms.py \\
     --indir      "\$indir" \\
     --chroms     chroms.dynamic \\
-    --resolution ${res} \\
+    --resolution ${ref_resolution} \\
     --outdir     "\$out"
 
   # 5) Verify expected output
@@ -438,25 +280,139 @@ process hic_concat {
   || { echo "[hic_concat] Expected file not produced: \$out/structure.csv" >&2; exit 1; }
 """
 }
-//----------------- Process 4: copy input files for data provenance -----------------
-/* ---------- process definition (no `from` here) ---------- */
-process save_inp {
-  tag "save_inp"
 
-  input:
-  path yaml_file
-  path chroms_file
-
-  output:
-  file("input.yaml")
-  file("results_autosomes.tsv")
-
+/* ---------- provenance ---------- */
+process save_provenance {
+  tag 'save_provenance'
   publishDir params.outdir, mode: 'copy', saveAs: { produced -> "ensemble/provenance/${produced}" }
-
+  input:
+    path yaml_file
+    path contig_file
+  output:
+    path 'input.yaml'
+    path 'contigs.bed'
   script:
   """
   set -euo pipefail
-  cp "${yaml_file}"   input.yaml
-  cp "${chroms_file}" results_autosomes.tsv
+  cp "${yaml_file}" input.yaml
+  cp "${contig_file}" contigs.bed
   """
 }
+
+/************************************************************
+ *                   SUB-WORKFLOWS
+ ************************************************************/
+
+/* ---------- Stage 1: FASTQ -> BWA index -> HIC -> per-contig -> concat ---------- */
+workflow STAGE1_FULL {
+  take:
+    TSTEPS7_ch
+
+  main:
+    // 1) Build the BWA index once and gate Stage-1 work on its completion
+    def bwa_token = bwa_index(Channel.fromPath(refSeq, checkIfExists:true)).bwa_index_done
+
+    // 2) Select stage==1 timesteps and prepare tuples for slurpy_hic
+    def S1 = TSTEPS7_ch
+      .filter { exp, ts, structure, stage, ref, mito, res -> stage?.toString() == '1' }
+      .map    { exp, ts, structure, stage, ref, mito, res ->
+                 tuple(exp, ts, structure, ref, (mito ?: ''), res, contigsFile as String)
+              }
+      .cross(bwa_token)        // gate on index completion
+      .map { left, _ -> left } // drop the token, keep only the left tuple
+
+    // 3) Run slurpy_hic -> emits (exp, ts, res, hicfile)
+    def std_ch = slurpy_hic(S1)
+
+    // 4) Fan out per contig (defensive destructuring; avoid getAt on broadcasts)
+    def per_contig = std_ch.flatMap { t ->
+      if (!(t instanceof List) || t.size()!=4) {
+        println "[DEBUG] std_ch bad item -> ${t} (${t?.getClass()?.name})"
+        return []   // skip malformed items
+      }
+      def (exp, ts, res, hicfile) = t
+      CONTIGS.collect { c -> tuple(exp, ts, res, hicfile, c as String) }
+    }
+
+    // 5) Per-contig structure -> (exp, ts, res, contig, dir)
+    def pc_dirs = hic2struct_one(per_contig)
+
+    // 6) Group per (exp, ts, res) and pass list of dirs to concat
+    def grouped = pc_dirs
+      .map { exp, ts, res, contig, dir -> tuple([exp, ts, res] as List, dir) }
+      .groupTuple()
+      .map { key, dirs ->
+        def (exp, ts, res) = key
+        tuple(exp as String, ts as String, res as String, dirs as List)
+      }
+
+    // 7) Concatenate per timestep
+    hic_concat(grouped)
+}
+
+/* ---------- Stage 2: start from .hic -> per-contig -> concat ---------- */
+workflow STAGE2_HIC {
+  take:
+    TSTEPS7_ch
+
+  main:
+    // 1) Expand .hic files only for stage==2 timesteps — NO channels inside the stream
+    def HIC_FILES = TSTEPS7_ch
+      .filter { exp, ts, structure, stage, ref, mito, res -> stage?.toString() == '2' }
+      .flatMap { exp, ts, structure, stage, ref, mito, res ->
+        // List *.hic under 'structure' using plain File APIs to avoid leaking channels
+        def sdir  = structure?.toString()
+        def base  = sdir ? new File(sdir) : null
+        def files = (base?.exists() && base.isDirectory())
+                      ? (base.listFiles()?.findAll { it.name.endsWith('.hic') } ?: [])
+                      : []
+        // Return a List of 4-tuples; flatMap will flatten it
+        files.collect { f -> tuple(exp as String, ts as String, (res ?: ''), file(f.absolutePath)) }
+      }
+    // HIC_FILES now emits: (exp, ts, res, hicfile)
+
+    // 2) Fan out per contig (defensive destructuring)
+    def per_contig = HIC_FILES.flatMap { t ->
+      if (!(t instanceof List) || t.size()!=4) {
+        println "[DEBUG] HIC_FILES bad item -> ${t} (${t?.getClass()?.name})"
+        return []
+      }
+      def (exp, ts, res, hicfile) = t
+      CONTIGS.collect { c -> tuple(exp, ts, res, hicfile, c as String) }
+    }
+
+    // 3) Per-contig structure -> (exp, ts, res, contig, dir)
+    def pc_dirs = hic2struct_one(per_contig)
+
+    // 4) Group per (exp, ts, res) and pass list of dirs to concat
+    def grouped = pc_dirs
+      .map { exp, ts, res, contig, dir -> tuple([exp, ts, res] as List, dir) }
+      .groupTuple()
+      .map { key, dirs ->
+        def (exp, ts, res) = key
+        tuple(exp as String, ts as String, res as String, dirs as List)
+      }
+
+    // 5) Concatenate per timestep
+    hic_concat(grouped)
+}
+
+/************************************************************
+ *                   MAIN (auto-routing)
+ ************************************************************/
+workflow MAIN {
+  def hasS1 = rows.any { it[3]?.toString() == '1' }
+  def hasS2 = rows.any { it[3]?.toString() == '2' }
+  def T7_CH = TSTEPS7
+
+  if (hasS1) STAGE1_FULL(T7_CH)
+  if (hasS2) STAGE2_HIC(T7_CH)
+  if (!hasS1 && !hasS2) log.warn "No timesteps with struct_stage 1 or 2; nothing to run."
+
+  def Y = Channel.fromPath(params.yaml, checkIfExists:true)
+  def C = Channel.fromPath(contigsFile,   checkIfExists:true)
+  save_provenance(Y, C)
+}
+
+/* ---------- Default entry ---------- */
+workflow { MAIN() }

@@ -12,40 +12,38 @@ Running the [workflow](workflow.md) on this file shall result in a fully populat
 4D dataset as [specified here](https://github.com/epicsuite/episcope/blob/main/spec/1.1.md)
 
 ```        
-ensemble:
-  version: x.x                              version of this specification
+version: x.x
   meta:
     title: a title
     desc: a longer description
   license: somename.txt
   reference:
-    sequence: somename.fna                  source of the project's list of chromosomes)
+    sequence: /path/to/sequence.fa
     annotation: somename.gff
-    mitochondria: some accession number     (this is not easily machine readable; some genomes do not have it)
-    chromosomes:
-        included: not required; filname or [list, of, names]  
+    mitochondria: (optional) Accession for mitochondrial contig, if present
+    resolution: 100000
+    contigs: /path/to/bedfile
   experiments:
-    - name: experiment_A
-      sample: experiment
-      replicate: A  
-      desc: an experiment on the SOMETHING cell line
+    - name: Treatment
+      sample: Name of organism/virus
+      replicate: 1  
+      desc: Description of sample
       timesteps:
-        - name: timestep00
-          structure: [filepath.fastq, filepath.fastq]
-          tracks:
-            - name01: [filepath.fastq, filepath.fastq]
-            - name02: [filepath.fastq, filepath.fastq]
-        - name: timestep01
-          structure: [filepath.fastq, filepath.fastq]
-          struct_stage: [1,2,3] switch to allow 1- full workflow, 2- start with precomputed HiC, 3- load in precomputed structure
-                                for viewer
-          tracks:
-            - name01: [filepath.fastq, filepath.fastq]
-            - name02: [filepath.fastq, filepath.fastq]
-    - name: experiment_B
-        (same as shown above)
-    - name: experiment_C
-        (same as shown above)
-    - name: experiment_D
-        (same as shown above)
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+    - name: Treatment
+      sample: Name of organism/virus
+      replicate: 1  
+      desc: Description of sample
+      timesteps:
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
+        - name: Time step annotation
+          structure: /path/to/directory/with/inputs (FASTQ or HiC)
+          struct_stage: 1 for FASTQ, 2 for HiC
 ```
