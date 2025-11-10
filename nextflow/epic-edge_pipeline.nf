@@ -195,6 +195,7 @@ process slurpy_hic {
   done
 
   mv "$target" hicfile.hic
+  rm -r aligned bedpe merged splits
   BASH
 
   bash watcher.sh
