@@ -137,11 +137,16 @@ process slurpy_hic {
   script:
   """
   set -euo pipefail
-
-  # Symlink structure into work dir (by basename); -n tolerates existing links
-  ln -sfn "${structure}" "./fastq"
-  ln -sfn "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/" "./SLURPY"
-
+  echo "[slurpy_hic] waiting for BWA index of ${reference}" >&2
+  while :; do
+    if [ -s "${reference}.amb" ] && [ -s "${reference}.ann" ] && \
+       [ -s "${reference}.bwt" ] && [ -s "${reference}.pac" ] && \
+       [ -s "${reference}.sa" ]; then
+      echo "[slurpy_hic] BWA index detected" >&2
+      break
+    fi
+    sleep 10
+  done
   echo "[slurpy_hic] exp=${exp} ts=${ts} structure=${structure}" >&2
   echo "[slurpy_hic] contigs (genomelist) PATH: ${contigs_file}" >&2
 
@@ -319,8 +324,6 @@ workflow STAGE1_FULL {
       .map    { exp, ts, structure, stage, ref, mito, res ->
                  tuple(exp, ts, structure, ref, (mito ?: ''), res, contigsFile as String)
               }
-      .cross(bwa_token)        // gate on index completion
-      .map { left, _ -> left } // drop the token, keep only the left tuple
 
     // 3) Run slurpy_hic -> emits (exp, ts, res, hicfile)
     def std_ch = slurpy_hic(S1)
