@@ -130,6 +130,7 @@ process bwa_index {
  */
 process slurpy_hic {
   tag "${exp}/${ts}"
+  maxForks 2
   input:
     tuple val(exp), val(ts), val(structure), val(reference), val(mitochondria), val(ref_resolution), val(contigs_file)
   output:
@@ -147,12 +148,16 @@ process slurpy_hic {
     fi
     sleep 10
   done
+  # Symlink structure into work dir (by basename); -n tolerates existing links
+  ln -sfn "${structure}" "./fastq"
+  ln -sfn "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/" "./SLURPY"
+
   echo "[slurpy_hic] exp=${exp} ts=${ts} structure=${structure}" >&2
   echo "[slurpy_hic] contigs (genomelist) PATH: ${contigs_file}" >&2
 
   # Ensure SLURPY scripts are reachable
   export PATH=\$PATH:/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/
-
+  echo \$PATH
   # Build the command as an array (no eval, no backslash-continues)
   declare -a cmd
   cmd=( "/panfs/biopan04/4DGENOMESEQ/EDGE_WORKFLOW/workflow/nextflow/SLURPY/slurm.py"
@@ -199,7 +204,7 @@ process slurpy_hic {
     sleep 60
   done
 
-  mv "$target" hicfile.hic
+  mv "\$target" hicfile.hic
   rm -r aligned bedpe merged splits
   BASH
 
@@ -324,10 +329,13 @@ workflow STAGE1_FULL {
       .map    { exp, ts, structure, stage, ref, mito, res ->
                  tuple(exp, ts, structure, ref, (mito ?: ''), res, contigsFile as String)
               }
+      //.cross(bwa_token)        // gate on index completion
+      //.map { left, _ -> left } // drop the token, keep only the left tuple
 
     // 3) Run slurpy_hic -> emits (exp, ts, res, hicfile)
-    def std_ch = slurpy_hic(S1)
+    println("Running SLURPY")
 
+    def std_ch = slurpy_hic(S1)
     // 4) Fan out per contig (defensive destructuring; avoid getAt on broadcasts)
     def per_contig = std_ch.flatMap { t ->
       if (!(t instanceof List) || t.size()!=4) {
@@ -337,7 +345,7 @@ workflow STAGE1_FULL {
       def (exp, ts, res, hicfile) = t
       CONTIGS.collect { c -> tuple(exp, ts, res, hicfile, c as String) }
     }
-
+    println("Calculating 3D structure")
     // 5) Per-contig structure -> (exp, ts, res, contig, dir)
     def pc_dirs = hic2struct_one(per_contig)
 
@@ -351,6 +359,7 @@ workflow STAGE1_FULL {
       }
 
     // 7) Concatenate per timestep
+    println("Merging structure outputs")
     hic_concat(grouped)
 }
 
