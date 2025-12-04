@@ -301,12 +301,12 @@ process save_provenance {
     path contig_file
   output:
     path 'input.yaml'
-    path 'contigs.bed'
+    path 'contigs.tsv'
   script:
   """
   set -euo pipefail
   cp "${yaml_file}" input.yaml
-  cp "${contig_file}" contigs.bed
+  cp "${contig_file}" contigs.tsv
   """
 }
 
